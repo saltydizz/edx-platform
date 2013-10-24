@@ -37,6 +37,7 @@ MITX_FEATURES['ENABLE_INSTRUCTOR_EMAIL'] = True     # Enable email for all Studi
 MITX_FEATURES['REQUIRE_COURSE_EMAIL_AUTH'] = False  # Give all courses email (don't require django-admin perms)
 MITX_FEATURES['ENABLE_HINTER_INSTRUCTOR_VIEW'] = True
 MITX_FEATURES['ENABLE_INSTRUCTOR_BETA_DASHBOARD'] = True
+MITX_FEATURES['ENABLE_SYSADMIN_DASHBOARD'] = True
 MITX_FEATURES['MULTIPLE_ENROLLMENT_ROLES'] = True
 MITX_FEATURES['ENABLE_SHOPPING_CART'] = True
 MITX_FEATURES['AUTOMATIC_VERIFY_STUDENT_IDENTITY_FOR_TESTING'] = True
@@ -265,10 +266,6 @@ ANALYTICS_API_KEY = ""
 SEGMENT_IO_LMS_KEY = os.environ.get('SEGMENT_IO_LMS_KEY')
 if SEGMENT_IO_LMS_KEY:
     MITX_FEATURES['SEGMENT_IO_LMS'] = True
-
-########################## GIT WORKFLOW ########################
-
-CMS_ADD_COURSE_SCRIPT = REPO_ROOT / "scripts/cms_git_add_course"
 
 ###################### Payment ##############################3
 
