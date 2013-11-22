@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 from functools import partial
 
 from django.conf import settings
-from django.contrib.auth.models import Group
+from django.contrib.auth.models import Group, AnonymousUser
 
 from xmodule.course_module import CourseDescriptor
 from xmodule.error_module import ErrorDescriptor
@@ -61,6 +61,10 @@ def has_access(user, obj, action, course_context=None):
     Returns a bool.  It is up to the caller to actually deny access in a way
     that makes sense in context.
     """
+    # Just in case user is passed in as None, make them anonymous
+    if not user:
+        user=AnonymousUser
+
     # delegate the work to type-specific functions.
     # (start with more specific types, then get more general)
     if isinstance(obj, CourseDescriptor):
