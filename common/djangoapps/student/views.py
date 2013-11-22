@@ -91,7 +91,7 @@ def csrf_token(context):
 # branding/views.py:index(), which is cached for anonymous users.
 # This means that it should always return the same thing for anon
 # users. (in particular, no switching based on query params allowed)
-def index(request, extra_context={}, user=AnonymousUser):
+def index(request, extra_context={}, user=AnonymousUser()):
     """
     Render the edX main page.
 

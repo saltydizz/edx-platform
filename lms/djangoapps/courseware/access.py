@@ -63,7 +63,7 @@ def has_access(user, obj, action, course_context=None):
     """
     # Just in case user is passed in as None, make them anonymous
     if not user:
-        user=AnonymousUser
+        user=AnonymousUser()
 
     # delegate the work to type-specific functions.
     # (start with more specific types, then get more general)
