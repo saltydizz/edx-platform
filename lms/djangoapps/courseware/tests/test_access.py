@@ -103,5 +103,5 @@ class AccessTestCase(TestCase):
         """Ensure has_access handles a user being passed as null"""
         try:
             access.has_access(None, 'global', 'staff', None)
-        except Exception, ex:
+        except AttributeError, ex:
             self.fail("has_access failed on user being None: {0}".format(str(ex)))
