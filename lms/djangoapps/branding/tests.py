@@ -44,7 +44,7 @@ class AnonymousIndexPageTest(ModuleStoreTestCase):
         request.user = AnonymousUser()
         try:
             student.views.index(request)
-        except Exception, ex:
+        except AttributeError, ex:
             self.fail("students.views.index failed on user being anonymous: {0}".format(str(ex)))
 
     @override_settings(MITX_FEATURES=MITX_FEATURES_WITH_STARTDATE)
