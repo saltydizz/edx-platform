@@ -52,8 +52,7 @@ class SysadminBaseTestCase(ModuleStoreTestCase):
     def _setstaff_login(self):
         """Makes the test user staff and logs them in"""
 
-        self.user.is_staff = True
-        self.user.save()
+        GlobalStaff().add_users(self.user)
         self.client.login(username=self.user.username, password='foo')
 
     def _add_edx4edx(self):
