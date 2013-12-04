@@ -16,7 +16,7 @@ from django.utils.html import escape
 from django.utils.translation import ugettext as _
 import mongoengine
 
-from courseware.roles import CourseStaffRole
+from courseware.roles import CourseStaffRole, GlobalStaff
 from courseware.tests.tests import TEST_DATA_MONGO_MODULESTORE
 from dashboard.models import CourseImportLog
 from dashboard.sysadmin import Users
