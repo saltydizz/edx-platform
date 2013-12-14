@@ -5,6 +5,9 @@ These are notable changes in edx-platform.  This is a rolling list of changes,
 in roughly chronological order, most recent first.  Add your entries at or near
 the top.  Include a label indicating the component affected.
 
+CMS: Add feature to allow exporting a course to a git repository by
+specifying the giturl in the course settings.
+
 LMS: Fix answer distribution download for small courses. LMS-922, LMS-811
 
 Blades: Add template for the zooming image in studio. BLD-206.
