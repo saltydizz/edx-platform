@@ -5,6 +5,58 @@ These are notable changes in edx-platform.  This is a rolling list of changes,
 in roughly chronological order, most recent first.  Add your entries at or near
 the top.  Include a label indicating the component affected.
 
+CMS: Add feature to allow exporting a course to a git repository by
+specifying the giturl in the course settings.
+
+Studo: Fix import/export bug with conditional modules. STUD-149
+
+Blades: Persist student progress in video. BLD-385.
+
+Blades: Fix for the list metadata editor that gets into a bad state where "Add"
+  is disabled. BLD-821.
+
+Blades: Add view for field type Dict in Studio. BLD-658.
+
+Blades: Refactor stub implementation of LTI Provider. BLD-601.
+
+Studio: Added ability to edit course short descriptions that appear on the course catalog page.
+
+LMS: In left accordion and progress page, due dates are now displayed in time
+zone specified by settings.TIME_ZONE, instead of UTC always
+
+LMS:  If the course start date is kept at the default studio value (Jan 1, 2030)
+and advertised_start is not set, the start date is not displayed in the
+/courses tile view, the course about page, or the dashboard
+
+LMS: Add ability to redirect to a splash screen.
+
+Blades: Add role parameter to LTI. BLD-583.
+
+Blades: Bugfix "In Firefox YouTube video with start time plays from 00:00:00".
+BLD-708.
+
+Blades: Fix bug when image response in Firefox does not retain input. BLD-711.
+
+Blades: Give numerical response tolerance as a range. BLD-25.
+
+Common: Add a utility app for building databased-backed configuration
+  for specific application features. Includes admin site customization
+  for easier administration and tracking.
+
+Common: Add the ability to dark-launch site translations. These languages
+  will be unavailable to users except through the use of a specific query
+  parameter.
+
+Blades: Allow user with BetaTester role correctly use LTI. BLD-641.
+
+Blades: Video player persist speed preferences between videos. BLD-237.
+
+Blades: Change the download video field to a dropdown that will allow students
+to download the first source listed in the alternate sources. BLD-364.
+
+Blades: Change the track field to a dropdown that will allow students
+to download the transcript of the video without timecodes. BLD-368.
+
 Blades: Video player start-end time range is now shown even before Play is
 clicked. Video player VCR time shows correct non-zero total time for YouTube
 videos even before Play is clicked. BLD-529.
