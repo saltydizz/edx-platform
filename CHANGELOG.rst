@@ -5,6 +5,9 @@ These are notable changes in edx-platform.  This is a rolling list of changes,
 in roughly chronological order, most recent first.  Add your entries at or near
 the top.  Include a label indicating the component affected.
 
+CMS: Add feature to allow exporting a course to a git repository by
+specifying the giturl in the course settings.
+
 Blades: Video player start-end time range is now shown even before Play is
 clicked. Video player VCR time shows correct non-zero total time for YouTube
 videos even before Play is clicked. BLD-529.
