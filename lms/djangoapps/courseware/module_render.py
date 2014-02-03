@@ -534,6 +534,7 @@ def handle_xblock_callback(request, course_id, usage_id, handler, suffix=None):
     not accessible by the user, or the module raises NotFoundError. If the
     module raises any other error, it will escape this function.
     """
+
     if not request.user.is_authenticated():
         raise PermissionDenied
 
