@@ -14,6 +14,7 @@ from pkg_resources import resource_string
 import datetime
 import time
 import urllib
+import hashlib
 
 from django.http import Http404
 from django.conf import settings
@@ -138,10 +139,10 @@ class StaffGradingModule(StaffGradingFields, XModule):
         rset = self.fstat.get_status()
         if rset and rset[0].get('score', None) is not None:
             self.score = rset[0].get('score')
-            log.info("Set score for uploaded assignment by %s to %s" % (self.user, self.score))
+            log.info("[%s] Set local score for uploaded assignment by %s to %s" % (self.location.name, self.user, self.score))
         elif rset:
             self.score = None
-            log.info("Set score for uploaded assignment by %s to %s" % (self.user, self.score))
+            log.info("[%s] Set local score for uploaded assignment by %s to %s" % (self.location.name, self.user, self.score))
             
     def is_graded(self):
         '''
@@ -165,7 +166,10 @@ class StaffGradingModule(StaffGradingFields, XModule):
         log.info('staff_grading ajax dispatch=%s, data=%s' % (dispatch, data))
 
         if dispatch=='upload':
-            link = self.upload_file(data)
+            try:
+                link = self.upload_file(data)
+            except Exception as err:
+                return json.dumps({'msg':'Error: failed to upload, please retry'})
             return json.dumps({'msg':'ok', 'url': link})
 
         elif dispatch=='download':
@@ -210,6 +214,8 @@ class StaffGradingModule(StaffGradingFields, XModule):
                    'display_name': self.display_name,
                    'is_past_due': self.is_past_due(),
                    'is_graded': self.is_graded(),
+                   'modid': 'sga_%s' % (hashlib.sha1(self.location.name).hexdigest()[:10]),	# for unique ID's in html elements
+                   'jump_to_id': "/courses/%s/jump_to_id/%s" % (self.course_id, self.location.name),
         }
         return self.system.render_template('staff_grading.html', context)
             
@@ -380,7 +386,7 @@ class StaffGradingModule(StaffGradingFields, XModule):
         Make this via username + course_id + location + students-file-name
         '''
         safe_fname = unicode(urllib.quote(fname))
-        return '%s__%s__%s__%s' % (self.user.username, self.course_id, self.location, safe_fname)
+        return 'staff_grading/%s/%s/%s__%s' % (self.course_id, self.location.name, self.user.username, safe_fname)
         
     def upload_file(self, data):
         """
@@ -395,13 +401,17 @@ class StaffGradingModule(StaffGradingFields, XModule):
 
         fd.seek(0)
         file_key = self.make_file_name(fd.name)
-        s3_public_url = upload_to_s3(fd, file_key, self.s3_interface)
+
+        try:
+            s3_public_url = upload_to_s3(fd, file_key, self.s3_interface)
+        except Exception as err:
+            log.exception('Faled to upload file: s3 error for file %s' % file_key)
+            raise
 
         log.info("url: %s" % s3_public_url)
-
         link = '<a href="{0}" target="_blank">{1}</a>'.format(s3_public_url, fd.name)
 
-        self.fstat.create_status(file_key, fd.name)
+        self.fstat.create_status(file_key, fd.name)	# update SDB record
 
         return link
 
