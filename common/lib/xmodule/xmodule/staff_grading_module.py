@@ -115,6 +115,14 @@ class StaffGradingModule(StaffGradingFields, XModule):
     """
     icon_class = 'problem'
 
+    js = {'coffee': [resource_string(__name__, 'js/src/javascript_loader.coffee'),
+                     resource_string(__name__, 'js/src/conditional/display.coffee'),
+                     resource_string(__name__, 'js/src/collapsible.coffee'),
+                     ]}
+
+    js_module_name = "Conditional"
+    css = {'scss': [resource_string(__name__, 'css/capa/display.scss')]}
+
     def __init__(self, *args, **kwargs):
         super(StaffGradingModule, self).__init__(*args, **kwargs)
 
@@ -193,16 +201,11 @@ class StaffGradingModule(StaffGradingFields, XModule):
         else:
             log.debug(u"GET {0}".format(data))
             log.debug(u"DISPATCH {0}".format(dispatch))
+            return self.ajax_return_html()
+
         raise Http404()
 
-    def is_past_due(self):
-        """
-        Is it now past this problem's due date, including grace period?
-        """
-        return (self.close_date is not None and
-                datetime.datetime.now(UTC()) > self.close_date)
-
-    def get_html(self):
+    def ajax_return_html(self):
         rs = self.fstat.get_status()
         
         context = {'s3_interface': self.s3_interface,
@@ -217,7 +220,23 @@ class StaffGradingModule(StaffGradingFields, XModule):
                    'modid': 'sga_%s' % (hashlib.sha1(self.location.name).hexdigest()[:10]),	# for unique ID's in html elements
                    'jump_to_id': "/courses/%s/jump_to_id/%s" % (self.course_id, self.location.name),
         }
-        return self.system.render_template('staff_grading.html', context)
+        return json.dumps({'html': [self.system.render_template('staff_grading.html', context)] })
+
+    def is_past_due(self):
+        """
+        Is it now past this problem's due date, including grace period?
+        """
+        return (self.close_date is not None and
+                datetime.datetime.now(UTC()) > self.close_date)
+
+    def get_html(self):
+        return self.system.render_template('conditional_ajax.html', {
+            'element_id': self.location.html_id(),
+            'id': self.id,
+            'ajax_url': self.system.ajax_url,
+            'depends': '',
+        })
+
             
     class FileStatus(object):
         '''

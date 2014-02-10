@@ -23,7 +23,7 @@ border-color: #666666;
 background-color: #ffffff;
 }
 
-#grading_modal {
+.grading_modal {
     position: fixed;
     z-index:100;
     top: 0px;
@@ -35,17 +35,20 @@ background-color: #ffffff;
     }
 </style>
 
-<h1>${display_name}</h1>
+<!----------------------------------------------------------------------------- -->
 
-% if is_staff:
+<section id="${modid}_section">
+  <h1>${display_name}</h1>
+
+  % if is_staff:
     <hr width="80%"/>
     <font color="red">For Course Staff: 
-        <a id="grading_trig" rel="leanModal" href="#grading_modal">Click Here to Grade Submissions</a>
+        <a id="${modid}_grading_trig" rel="leanModal" href="#${modid}_grading_modal">Click Here to Grade Submissions</a>
     </font>
-    <a id="enter_grade_trig" rel="leanModal" href="#enter_grade_modal" style="display:none;">enter grade</a>
-% endif
+    <a id="${modid}_enter_grade_trig" rel="leanModal" href="#${modid}_enter_grade_modal" style="display:none;">enter grade</a>
+  % endif
 
-% if rs:
+  % if rs:
     <hr width="80%"/>    
     <p>You have previously submitted:</p>
     <table class="gridtable"><tr><th>Filename</th><th>Date</th><th>Grade</th><th>Comments</th></tr>
@@ -60,243 +63,289 @@ background-color: #ffffff;
     </table>
     <p>The maximum grade on this assignment is ${max_score}</p>
 
-% endif
+  % endif
 
     <hr width="80%"/>    
 
-% if is_past_due:
+  % if is_past_due:
     <p>Due date is past - no more uploads allowed.</p>
-% elif is_graded:
+  % elif is_graded:
     <p>Your assignment has already been submitted and graded.</p>
-% else:
+  % else:
     <form enctype="multipart/form-data" method="post" name="fileinfo">
         File to upload:
-        <input type="file" name="file" required />
+        <input type="file" name="file" required id="sga_file2upload" />
     </form>
     <div id="output"></div>
 
      <br/>
     <a id="${modid}_SendFile" href="#" class="button upload-button new-button"><i class="icon-plus"></i>&nbsp; Upload New File</a>
-% endif
+  % endif
 
-% if is_staff:
+  % if is_staff:
 
-<section class="modal" id="grading_modal" style="width:80%; left:10%; top:10%; height:80%; overflow:auto;" >
-  <div class="inner-wrapper" style="color:black">
-    <header>
-      <h2>Staff Grading</h2>
-    </header>
-    <div class="staff_grading" style="display:block">
-
-        <div id="sg_table"></div>
-
+  <section class="modal grading_modal" id="${modid}_grading_modal" style="width:80%; left:10%; top:10%; height:80%; overflow:auto;" >
+    <div class="inner-wrapper" style="color:black">
+      <header>
+        <h2>Staff Grading</h2>
+      </header>
+      <div class="staff_grading" style="display:block">
+  
+          <div id="sg_table"></div>
+  
+      </div>
+      <a class="modal_close" href="#"></a>
     </div>
-    <a class="modal_close" href="#"></a>
-  </div>
+  </section>
+  
+  <section class="modal" id="${modid}_enter_grade_modal" style="width:60%; left:20%; top:20%; height:50%; overflow:auto;" >
+    <div class="inner-wrapper" style="color:gray">
+      <header>
+        <h2>Enter Grade</h2>
+      </header>
+      <div class="staff_grading" style="display:block">
+  
+          <h3><div id="student_name"></div></h3>
+          <form id="grade_form" action="" method="post">
+  	    Grade: <input type="text" name="grade"> <div id="grade_msg"></div>
+  	    Comment: <textarea name="comment" rows="4"></textarea>
+  	    <input type="submit" value="Submit Grade" />
+  	    <input type="submit" value="Cancel" />
+  	</form>
+  
+      </div>
+    </div>
+  
+  </section>
+  
+  % endif
+
 </section>
 
-<section class="modal" id="enter_grade_modal" style="width:60%; left:20%; top:20%; height:50%; overflow:auto;" >
-  <div class="inner-wrapper" style="color:gray">
-    <header>
-      <h2>Enter Grade</h2>
-    </header>
-    <div class="staff_grading" style="display:block">
 
-        <h3><div id="student_name"></div></h3>
-        <form id="grade_form" action="${ajax_url}/score" method="post">
-	    Grade: <input type="text" name="grade"> <div id="grade_msg"></div>
-	    Comment: <textarea name="comment" rows="4"></textarea>
-	    <input type="submit" value="Submit Grade" />
-	    <input type="submit" value="Cancel" />
-	</form>
+<script type="text/javascript" >
 
-    </div>
-  </div>
-
-</section>
-
-% endif
-
-
-<script type="text/javascript">
-
-function blink(selector){
-    $(selector).fadeOut('slow', function(){
-    $(this).fadeIn('slow', function(){
-        blink(this);
-        });
-    });
-}
-
-function sendForm() {
-  var oOutput = document.getElementById("output"),
-  oData = new FormData(document.forms.namedItem("fileinfo"));
-	  
-  oOutput.innerHTML = '<p>Uploading...<img src="/static/images/spinner.gif"/></p>';
-
-  oData.append("csrfmiddlewaretoken", "${csrf_token}");
-	    
-  var oReq = new XMLHttpRequest();
-  oReq.open("POST", "${ajax_url}/upload", true);
-  oReq.addEventListener('progress', function(e) {
-        var done = e.position || e.loaded, total = e.totalSize || e.total;
-        console.log('xhr progress: ' + (Math.floor(done/total*1000)/10) + '%');
-	oOutput.innerHTML = '<p>Uploading...' + (Math.floor(done/total*1000)/10) + '%</p>';
-  }, false);
-  if ( oReq.upload ) {
-            oReq.upload.onprogress = function(e) {
-               var done = e.position || e.loaded, total = e.totalSize || e.total;
-               console.log('xhr.upload progress: ' + done + ' / ' + total + ' = ' + (Math.floor(done/total*1000)/10) + '%');
-	       pct = (Math.floor(done/total*1000)/10);
-	       if (pct==100){
-	           oOutput.innerHTML = '<p>Uploading...' + pct + '% <font color="red" id="storing">Storing...</font></p>';
-		   blink('#storing');
-	       }else{
-    	           oOutput.innerHTML = '<p>Uploading...' + pct + '%</p>';
-	       }
-        };
-  };
-  oReq.onload = function(oEvent) {
-      if (oReq.status == 200) {
-          oOutput.innerHTML = "<font color='green'>Uploaded!</font>";
-	  data = JSON.parse(oReq.responseText);
-	  window.location.replace('${jump_to_id}');	// reload page
-      } else {
-          oOutput.innerHTML = "Error " +
-              oReq.status + " occurred uploading your file.<br \/>";
-      }
-    };
-    oReq.send(oData);
+js_sga = (function(modid){
     
-}
+    var mid = modid;
+    var sgasec = $('#' + mid + '_section');
 
-function getFile(pdata){
-  $.post( "${ajax_url}/download", pdata)
-      .done(function( data ) {
-             if (data.ok){
-	         window.open(data.url, "download", "_blank");
-	     }else{
-	         alert(data.msg);
-	     }
-      });
-}
-
-function isNumber(n) {
-  return !isNaN(parseFloat(n)) && isFinite(n);
-}
-
-function doneWithGrade(){
-	$('#enter_grade_modal').hide();
-	$('#grading_trig').click();
-	$('#grade_form').find("input[type=text], textarea").val(""); // clear form
-	$('#grade_msg').html("");
-}
-
-function removeGrade(uname){
-  $.post("${ajax_url}/unscore", {'uname': uname})
-    .done(function( data ) {
-        if (data.ok){
-	    console.log("Grade for " + uname + " Removed");
-        }else{
-	    alert(data.msg);
-	}
-	getGradeSubmissions();
-    });
-}
-
-function enterGrade(uname){
-    $('#grading_modal').hide();
-    $('#enter_grade_trig').click();
-    $('#student_name').html("Grade for "+ uname);
-    $('#grade_form').submit(function(event) {
-        $(this).submit(function() {
-	    return false;
+    function blink(selector){
+	$(selector).fadeOut('slow', function(){
+	    $(this).fadeIn('slow', function(){
+		blink(this);
+            });
 	});
-	event.preventDefault();
-	button = $('input[type=submit][clicked=true]').val()
-	if (button=="Cancel"){
-	    return doneWithGrade();
+    }
+
+    function add_csrf(data){
+	data['csrfmiddlewaretoken'] = '${csrf_token}';
+	return data
+    }
+
+    function sendForm() {
+	var oOutput = sgasec.find('#output');
+	oData = new FormData(document.forms.namedItem("fileinfo"));
+	oOutput.html('<p>Uploading...<img src="/static/images/spinner.gif"/></p>');
+	oData.append("csrfmiddlewaretoken", "${csrf_token}");
+	
+	var sgafn = $('#sga_file2upload').val(); 
+	if (sgafn==''){
+	    oOutput.html("Please selct a file");
+	    return;
 	}
-	if (button=="Submit Grade"){
-	    // validate grade
-	    grade = $('#grade_form').find("input[name=grade]").val();
-	    gnum = parseFloat(grade);
-	    if ((!isNumber(grade)) | (gnum < 0) | (gnum > ${max_score})) {
-	        $('#grade_msg').html("Grade must be a valid number; max=${max_score}");
-	    }else{
-	        grade = parseFloat(grade);
-   	        comments = $('#grade_form').find("textarea[name=comment]").val();
-		pdata = {'grade': grade, 'comments': comments, 'uname': uname};
-		$.post("${ajax_url}/score", pdata)
-		    .done(function( data ) {
-		        if (data.ok){
-			    console.log("Grade for " + uname + " Entered");
-			    doneWithGrade();
-		        }else{
-			    alert(data.msg);
-			}
-			getGradeSubmissions();
-			getGradeSubmissions();
-		    });
+
+	var oReq = new XMLHttpRequest();
+	oReq.open("POST", "${ajax_url}/upload", true);
+	oReq.addEventListener('progress', function(e) {
+            var done = e.position || e.loaded, total = e.totalSize || e.total;
+            console.log('xhr progress: ' + (Math.floor(done/total*1000)/10) + '%');
+	    oOutput.html('<p>Uploading...' + (Math.floor(done/total*1000)/10) + '%</p>');
+	}, false);
+	if ( oReq.upload ) {
+            oReq.upload.onprogress = function(e) {
+		var done = e.position || e.loaded, total = e.totalSize || e.total;
+		console.log('xhr.upload progress: ' + done + ' / ' + total + ' = ' + (Math.floor(done/total*1000)/10) + '%');
+		pct = (Math.floor(done/total*1000)/10);
+		if (pct==100){
+	            oOutput.html('<p>Uploading...' + pct + '% <font color="red" id="storing">Storing...</font></p>');
+		    blink('#storing');
+		}else{
+    	            oOutput.html('<p>Uploading...' + pct + '%</p>');
+		}
+            };
+	};
+	oReq.onload = function(oEvent) {
+	    if (oReq.status == 200) {
+		oOutput.innerHTML = "<font color='green'>Uploaded!</font>";
+		data = JSON.parse(oReq.responseText);
+		window.location.replace('${jump_to_id}');	// reload page
+	    } else {
+		oOutput.innerHTML = "Error " +
+		    oReq.status + " occurred uploading your file.<br \/>";
 	    }
-        }
+	};
+	oReq.send(oData);
+	
+    }
+    
+    function getFile(pdata){
+	$.post( "${ajax_url}/download", pdata)
+	    .done(function( data ) {
+		if (data.ok){
+	            window.open(data.url, "download", "_blank");
+		}else{
+	            alert(data.msg);
+		}
+	    });
+    }
+    
+    function isNumber(n) {
+	return !isNaN(parseFloat(n)) && isFinite(n);
+    }
+    
+    function doneWithGrade(){
+	sgasec.find('#' + mid + '_enter_grade_modal').hide();
+	sgasec.find('#' + mid + '_grading_trig').click();
+	sgasec.find('#grade_form').find("input[type=text], textarea").val(""); // clear form
+	sgasec.find('#grade_msg').html("");
+    }
+    
+    function removeGrade(uname){
+	$.post("${ajax_url}/unscore", {'uname': uname})
+	    .done(function( data ) {
+		if (data.ok){
+		    console.log("Grade for " + uname + " Removed");
+		}else{
+		    alert(data.msg);
+		}
+		getGradeSubmissions();
+	    });
+    }
+    
+    function enterGrade(uname){
+	gm = sgasec.find('#' + mid + '_grading_modal');
+	gm.hide();
+	sgasec.find('#' + mid + '_enter_grade_trig').click();
+	// sgasec.find('#' + mid + '_enter_grade_modal').show();
+	sgasec.find('#student_name').html("Grade for "+ uname);
+	sgasec.find('#grade_form').submit(function(event) {
+            $(this).submit(function() {		// disable further clicks
+		return false;
+	    });
+	    event.preventDefault();
+	    button = $('input[type=submit][clicked=true]').val()
+	    if (button=="Cancel"){
+		return doneWithGrade();
+	    }
+	    if (button=="Submit Grade"){
+		gform = sgasec.find('#grade_form');
+		// validate grade
+		grade = gform.find("input[name=grade]").val();
+		gnum = parseFloat(grade);
+		if ((!isNumber(grade)) | (gnum < 0) | (gnum > ${max_score})) {
+	            gform.find('#grade_msg').html("<font color='red'>Grade must be a valid number; max=${max_score}</font>");
+		}else{
+	            grade = parseFloat(grade);
+   	            comments = gform.find("textarea[name=comment]").val();
+		    pdata = {'grade': grade, 'comments': comments, 'uname': uname};
+		    pdata = add_csrf(pdata);
+		    $.post("${ajax_url}/score", pdata)
+			.done(function( data ) {
+		            if (data.ok){
+				console.log("Grade for " + uname + " Entered");
+				doneWithGrade();
+		            }else{
+				alert(data.msg);
+			    }
+			    getGradeSubmissions();
+			    getGradeSubmissions();
+			});
+		}
+            }
+	});
+    }
+    
+    $("form input[type=submit]").click(function() {
+	$("input[type=submit]",$(this).parents("form")).removeAttr("clicked");
+	$(this).attr("clicked", "true");
     });
-}
+    
+    function funcname(name){
+	return 'javascript:js_' + mid + '.' + name;
+    }
 
-$("form input[type=submit]").click(function() {
-    $("input[type=submit]",$(this).parents("form")).removeAttr("clicked");
-    $(this).attr("clicked", "true");
-    });
+    function grade_link(item){
+	fn = funcname('enterGrade');
+	return '<a href="' + funcname('enterGrade') + '(\'' + item['username'] + '\')">' + 'enter grade' + '</a>';
+    }
+    
+    function ungrade_link(item){
+	return '<a href="' + funcname('removeGrade') + '(\'' + item['username'] + '\')">' + 'UNgrade' + '</a>';
+    }
+    
+    function staff_link(item){
+	return '<a href="' + funcname('getFile') + '({\'uname\':\'' + item['username'] + '\'})">' + item['student_filename'] + '</a>';
+    }
+    
+    function update_sg_table(data){
+	hs = '<table class="gridtable"><tr><th>Username</th><th>Name</th><th>Filename</th><th>Created</th><th>Grade</th><th>Comments</th></tr>';
+	data.forEach(function(item){
+            hs = hs + "<tr>";
+	    hs = hs + "<td>" + item['username'] + "</td>";
+	    hs = hs + "<td>" + item['name'] + "</td>";
+	    hs = hs + "<td>" + staff_link(item) + "</td>";
+	    hs = hs + "<td>" + item['created'] + "</td>";
+	    hs = hs + "<td>" + item['score'] + "</td>";
+	    hs = hs + "<td>" + item['staff_comments'] + "</td>";
+	    hs = hs + "<td>" + grade_link(item) + "</td>";
+	    hs = hs + "<td>" + ungrade_link(item) + "</td>";
+            hs = hs + "</tr>";
+	});
+	hs = hs + "</table>";
+	sgasec.find('#sg_table').html(hs);
+    }   
+    
+    function getGradeSubmissions(){
+	gm = sgasec.find('#' + mid + '_grading_modal');
+	gm.show()
+	$.ajax({
+            url: "${ajax_url}/list",
+            type: "POST",
+            data: "",
+            success: function(data) {
+		update_sg_table(data);
+		console.log(data);
+            },
+            error: function() {
+		alert('Error: cannot connect to server');
+            }
+	});
+    }
+    
+    sgasec.find('#' + mid + '_grading_trig').click(getGradeSubmissions);
+    sgasec.find('#' + mid + '_SendFile').click(sendForm);
+    sgasec.find('#' + mid + '_grading_trig').leanModal();
+    sgasec.find('#' + mid + '_enter_grade_trig').leanModal();
 
-function grade_link(item){
-    return '<a href="javascript:enterGrade(\'' + item['username'] + '\')">' + 'enter grade' + '</a>';
-}
+    sgfun = { 'enterGrade' : enterGrade,
+	      'removeGrade': removeGrade,
+	      'getFile': getFile,
+	      'funcname': funcname,
+	      'grade_link': grade_link,
+	      'mid': mid,
+	      'sgasec': sgasec,
+	      'sendForm': sendForm,
+	      'update_sg_table': update_sg_table,
+	      'getGradeSubmissions': getGradeSubmissions
+	    }
 
-function ungrade_link(item){
-    return '<a href="javascript:removeGrade(\'' + item['username'] + '\')">' + 'UNgrade' + '</a>';
-}
+    return sgfun;
 
-function staff_link(item){
-    return '<a href="javascript:getFile({\'uname\':\'' + item['username'] + '\'})">' + item['student_filename'] + '</a>';
-}
+}('${modid}') );
 
-function update_sg_table(data){
-    hs = '<table class="gridtable"><tr><th>Username</th><th>Name</th><th>Filename</th><th>Created</th><th>Grade</th><th>Comments</th></tr>';
-    data.forEach(function(item){
-        hs = hs + "<tr>";
-	hs = hs + "<td>" + item['username'] + "</td>";
-	hs = hs + "<td>" + item['name'] + "</td>";
-	hs = hs + "<td>" + staff_link(item) + "</td>";
-	hs = hs + "<td>" + item['created'] + "</td>";
-	hs = hs + "<td>" + item['score'] + "</td>";
-	hs = hs + "<td>" + item['staff_comments'] + "</td>";
-	hs = hs + "<td>" + grade_link(item) + "</td>";
-	hs = hs + "<td>" + ungrade_link(item) + "</td>";
-        hs = hs + "</tr>";
-    });
-    hs = hs + "</table>";
-    $('#sg_table').html(hs);
-}   
+js_${modid} = js_sga;
 
-function getGradeSubmissions(){
-      $.ajax({
-          url: "${ajax_url}/list",
-          type: "POST",
-          data: "",
-          success: function(data) {
-	      update_sg_table(data);
-	      console.log(data);
-          },
-          error: function() {
-              alert('Error: cannot connect to server');
-          }
-      });
-}
-
-$('#grading_trig').click(getGradeSubmissions);
-
-$('#${modid}_SendFile').click(sendForm);
-
-</script>	
+</script>
 
 </html>
