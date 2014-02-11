@@ -57,7 +57,11 @@ background-color: #ffffff;
 	    <td><a href='javascript:js_${modid}.getFile({"fn":"${fstat['student_filename']}"})'>${fstat['student_filename']}</a></td>
 	    <td>${fstat['created'][:16]}</td>
 	    <td>${fstat.get('score','(not graded yet)')}</td>
-	    <td>${fstat.get('staff_comments','')}</td>
+	    <td>
+	    % if fstat.get('annotated_staff_filename', ''):
+	        <a href='javascript:js_${modid}.downloadAnnotated("")'>${fstat['annotated_staff_filename']}</a> |
+	    % endif
+	    ${fstat.get('staff_comments','')}</td>
 	</tr>
     % endfor
     </table>
@@ -72,7 +76,7 @@ background-color: #ffffff;
   % elif is_graded:
     <p>Your assignment has already been submitted and graded.</p>
   % else:
-    <form enctype="multipart/form-data" method="post" name="fileinfo">
+    <form enctype="multipart/form-data" method="post" name="${modid}_fileinfo">
         File to upload:
         <input type="file" name="file" required id="sga_file2upload" />
     </form>
@@ -86,10 +90,13 @@ background-color: #ffffff;
 
   <section class="modal grading_modal" id="${modid}_grading_modal" style="width:80%; left:10%; top:10%; height:80%; overflow:auto;" >
     <div class="inner-wrapper" style="color:black">
-      <header>
-        <h2>Staff Grading</h2>
-      </header>
+        <h2>Staff Graded Assignment</h2>
       <div class="staff_grading" style="display:block">
+          <div id="sg_instructions"><p>Instructions: Click on a filename to downlaod
+student's submission.  Enter numerical grade (max: ${max_score}) and
+optional comments.  Upload a file, e.g. annotated PDF, for additional
+feedback to students.  "UNgrade" will erase the grade and upload a new
+file.</p><p>All actions are logged.</p></div>
   
           <div id="sg_table"></div>
   
@@ -104,19 +111,18 @@ background-color: #ffffff;
         <h2>Enter Grade</h2>
       </header>
       <div class="staff_grading" style="display:block">
-  
           <h3><div id="student_name"></div></h3>
-          <form id="grade_form" action="" method="post">
+          <form enctype="multipart/form-data" id="${modid}_grade_form" action="" method="post">
   	    Grade: <input type="text" name="grade"> <div id="grade_msg"></div>
   	    Comment: <textarea name="comment" rows="4"></textarea>
+	    Annotated file (optional): <input type="file" name="file" id="sga_file2upload" />
   	    <input type="hidden" name="username">
   	    <input type="submit" value="Submit Grade" />
   	    <input type="submit" value="Cancel" />
+	    <div id="gf_output"></div>
   	</form>
-  
       </div>
     </div>
-  
   </section>
   
   % endif
@@ -144,31 +150,39 @@ js_sga = (function(modid){
 	return data
     }
 
-    function sendForm() {
-	var oOutput = sgasec.find('#output');
-	oData = new FormData(document.forms.namedItem("fileinfo"));
+    function submitAssignmentFile() {
+        return uploadFile(mid + "_fileinfo", 'output', true, 'upload', true, '', '');
+    }
+
+    function uploadFile(inputid, outputid, required, action, dojump, uname, callback) {
+	var oOutput = sgasec.find('#' + outputid);
 	oOutput.html('<p>Uploading...<img src="/static/images/spinner.gif"/></p>');
+
+	oData = new FormData(document.forms.namedItem(inputid));
 	oData.append("csrfmiddlewaretoken", "${csrf_token}");
-	
-	var sgafn = $('#sga_file2upload').val(); 
-	if (sgafn==''){
+	if (uname){
+	    oData.append('uname', uname);	// for uploading annotated file
+	}
+
+	var sgafn = $(inputid).find('#sga_file2upload').val(); 
+	if (required & (sgafn=='')){
 	    oOutput.html("Please selct a file");
-	    return;
+	    return false;
 	}
 
 	var oReq = new XMLHttpRequest();
-	oReq.open("POST", "${ajax_url}/upload", true);
+	oReq.open("POST", "${ajax_url}/" + action, true);
 	oReq.addEventListener('progress', function(e) {
-            var done = e.position || e.loaded, total = e.totalSize || e.total;
-            console.log('xhr progress: ' + (Math.floor(done/total*1000)/10) + '%');
-	    oOutput.html('<p>Uploading...' + (Math.floor(done/total*1000)/10) + '%</p>');
+	    // var done = e.position || e.loaded, total = e.totalSize || e.total;
+            // console.log('xhr progress: ' + (Math.floor(done/total*1000)/10) + '%');
+	    oOutput.html('<p>Uploading...<font color="green">Storing</font></p>');
 	}, false);
 	if ( oReq.upload ) {
             oReq.upload.onprogress = function(e) {
 		var done = e.position || e.loaded, total = e.totalSize || e.total;
 		console.log('xhr.upload progress: ' + done + ' / ' + total + ' = ' + (Math.floor(done/total*1000)/10) + '%');
 		pct = (Math.floor(done/total*1000)/10);
-		if (pct==100){
+		if (pct>90){
 	            oOutput.html('<p>Uploading...' + pct + '% <font color="red" id="storing">Storing...</font></p>');
 		    blink('#storing');
 		}else{
@@ -180,14 +194,19 @@ js_sga = (function(modid){
 	    if (oReq.status == 200) {
 		oOutput.innerHTML = "<font color='green'>Uploaded!</font>";
 		data = JSON.parse(oReq.responseText);
-		window.location.replace('${jump_to_id}');	// reload page
+		if (dojump){
+ 		    window.location.replace('${jump_to_id}');	// reload page
+		}
 	    } else {
 		oOutput.innerHTML = "Error " +
 		    oReq.status + " occurred uploading your file.<br \/>";
 	    }
 	};
 	oReq.send(oData);
-	
+	if (callback){
+	    return callback();
+	}
+	return false;
     }
     
     function getFile(pdata){
@@ -208,7 +227,10 @@ js_sga = (function(modid){
     function doneWithGrade(){
 	sgasec.find('#' + mid + '_enter_grade_modal').hide();
 	sgasec.find('#' + mid + '_grading_trig').click();
-	sgasec.find('#grade_form').find("input[type=text], textarea").val(""); // clear form
+	gform = sgasec.find('#' + mid + '_grade_form');
+	gform.find("input[type=text], textarea").val(""); // clear form
+	gform.find('#sga_file2upload').val("");	// clear file input
+	gform.find('#gf_output').html("");
 	sgasec.find('#grade_msg').html("");
     }
     
@@ -224,15 +246,29 @@ js_sga = (function(modid){
 	    });
     }
     
+    function downloadAnnotated(uname){
+        pdata = {'uname': uname};
+	$.post( "${ajax_url}/downloadAnnotated", pdata)
+	    .done(function( data ) {
+		if (data.ok){
+	            window.open(data.url, "download", "_blank");
+		}else{
+	            alert(data.msg);
+		}
+	    });
+    }
+
     function enterGrade(uname){
 	gm = sgasec.find('#' + mid + '_grading_modal');
 	gm.hide();
 	sgasec.find('#' + mid + '_enter_grade_trig').click();
 	// sgasec.find('#' + mid + '_enter_grade_modal').show();
 	sgasec.find('#student_name').html("Grade for "+ uname);
-	sgasec.find('#grade_form').find("input[name=username]").val(uname);
+	gform = sgasec.find('#' + mid + '_grade_form');
+	gform.find("input[name=username]").val(uname);
+	gform.find('#gf_output').html("");
 	
-	sgasec.find('#grade_form').submit(function(event) {
+	sgasec.find('#' + mid + '_grade_form').submit(function(event) {
 	    event.stopImmediatePropagation();
 	    console.log(event);
             $(this).submit(function() {		// disable further clicks
@@ -244,7 +280,7 @@ js_sga = (function(modid){
 		return doneWithGrade();
 	    }
 	    if (button=="Submit Grade"){
-		gform = sgasec.find('#grade_form');
+		gform = sgasec.find('#' + mid + '_grade_form');
 		// validate grade
 		grade = gform.find("input[name=grade]").val();
 		the_uname = gform.find("input[name=username]").val();
@@ -256,7 +292,9 @@ js_sga = (function(modid){
    	            comments = gform.find("textarea[name=comment]").val();
 		    pdata = {'grade': grade, 'comments': comments, 'uname': the_uname};
 		    pdata = add_csrf(pdata);
-		    $.post("${ajax_url}/score", pdata)
+
+                    do_score = function(){
+		      $.post("${ajax_url}/score", pdata)
 			.done(function( data ) {
 		            if (data.ok){
 				console.log("Grade for " + the_uname + " Entered");
@@ -267,6 +305,19 @@ js_sga = (function(modid){
 			    getGradeSubmissions();
 			    setTimeout( function() {  getGradeSubmissions(); }, 1000);
 			});
+		    }
+
+                    // if uploading an annotated file, then submit file using uploadFile
+		    var sgafn = gform.find('#sga_file2upload').val();
+		    if (sgafn){
+		        console.log('uploading annotated');
+			console.log(sgafn);
+		        uploadFile(mid + "_grade_form", 'gf_output',
+			           false, 'uploadAnnotated', false, the_uname,
+				   do_score);
+		    }else{
+		        do_score();
+		    }
 		}
             }
 	});
@@ -283,9 +334,14 @@ js_sga = (function(modid){
 
     function grade_link(item){
 	fn = funcname('enterGrade');
-	return '<a href="' + funcname('enterGrade') + '(\'' + item['username'] + '\')">' + 'enter grade' + '</a>';
+	return '<a href="' + funcname('enterGrade') + '(\'' + item['username'] + '\')">' + 'Enter grade' + '</a>';
     }
     
+    function download_annotated_link(item){
+	fn = funcname('downloadAnnotated');
+	return '<a href="' + funcname('downloadAnnotated') + '(\'' + item['username'] + '\')">' + item['annotated_staff_filename'] + '</a> | ';
+    }
+
     function ungrade_link(item){
 	return '<a href="' + funcname('removeGrade') + '(\'' + item['username'] + '\')">' + 'UNgrade' + '</a>';
     }
@@ -303,7 +359,11 @@ js_sga = (function(modid){
 	    hs = hs + "<td>" + staff_link(item) + "</td>";
 	    hs = hs + "<td>" + item['created'] + "</td>";
 	    hs = hs + "<td>" + item['score'] + "</td>";
-	    hs = hs + "<td>" + item['staff_comments'] + "</td>";
+	    hs = hs + "<td>" 
+	    if (item['annotated_staff_filename']){
+	        hs = hs + download_annotated_link(item);
+	    }
+	    hs = hs + item['staff_comments'] + "</td>";
 	    hs = hs + "<td>" + grade_link(item) + "</td>";
 	    hs = hs + "<td>" + ungrade_link(item) + "</td>";
             hs = hs + "</tr>";
@@ -330,7 +390,7 @@ js_sga = (function(modid){
     }
     
     sgasec.find('#' + mid + '_grading_trig').click(getGradeSubmissions);
-    sgasec.find('#' + mid + '_SendFile').click(sendForm);
+    sgasec.find('#' + mid + '_SendFile').click(submitAssignmentFile);
     sgasec.find('#' + mid + '_grading_trig').leanModal();
     sgasec.find('#' + mid + '_enter_grade_trig').leanModal();
 
@@ -341,7 +401,8 @@ js_sga = (function(modid){
 	      'grade_link': grade_link,
 	      'mid': mid,
 	      'sgasec': sgasec,
-	      'sendForm': sendForm,
+	      'submitAssignmentFile': submitAssignmentFile,
+	      'downloadAnnotated': downloadAnnotated,
 	      'update_sg_table': update_sg_table,
 	      'getGradeSubmissions': getGradeSubmissions
 	    }

@@ -33,7 +33,7 @@ from xmodule.editing_module import TabsEditingDescriptor
 from xmodule.raw_module import EmptyDataRawDescriptor
 from xmodule.xml_module import is_pointer_tag, name_to_pathname, deserialize_field
 from xmodule.modulestore import Location
-from xblock.fields import Scope, String, Boolean, List, Integer, ScopeIds, Float
+from xblock.fields import Scope, String, Boolean, List, Dict, Integer, ScopeIds, Float
 from .fields import Timedelta, Date
 from xmodule.fields import RelativeTime
 from xmodule.seq_module import SequenceDescriptor
@@ -104,6 +104,11 @@ class StaffGradingFields(object):
         help="Amount of time after the due date that submissions will be accepted",
         scope=Scope.settings
     )
+    history = Dict(
+        help="historical record of staff grading actions taken by the user; key=date-time, value=description",
+        scope=Scope.user_state,
+        default={},
+    )
 
 
 class StaffGradingModule(StaffGradingFields, XModule):
@@ -170,32 +175,51 @@ class StaffGradingModule(StaffGradingFields, XModule):
         """
         return self.the_max_score
 
+    def log_action(self, action):
+        '''
+        Store historical record of action (a string).  
+        Do this to maintain integrity of staff grading records.
+        '''
+        dt = str(datetime.datetime.now(UTC))
+        self.history[dt] = action
+        log.info('[%s] %s' % (self.location.name, action))
+
     def handle_ajax(self, dispatch, data):
+        '''
+        Process AJAX call.
+        '''
         log.info('staff_grading ajax dispatch=%s, data=%s' % (dispatch, data))
 
         if dispatch=='upload':
             try:
                 link = self.upload_file(data)
+                fd = data['file'][0]
+                self.log_action('upload fn=%s, size=%s' % (fd.size, fd.name))
             except Exception as err:
                 return json.dumps({'msg':'Error: failed to upload, please retry'})
             return json.dumps({'msg':'ok', 'url': link})
 
         elif dispatch=='download':
-            log.info("download, data=%s" % data)
-            log.info('uname=%s' % data.get('uname',''))
-            log.info('fn=%s' % data.get('fn',''))
+            self.log_action('download %s' % data)
             return self.do_download(data)
 
         elif dispatch=='list':
-            log.info("list")
             return self.list_submissions(data)
 
         elif dispatch=='score' and self.system.user_is_staff:
-            log.info("score")
+            self.log_action('score %s' % data)
             return self.enter_score(data)
 
+        elif dispatch=='downloadAnnotated':
+            self.log_action('downloadAnnotated %s' % data)
+            return self.do_download(data, is_annotated=True)
+
+        elif dispatch=='uploadAnnotated' and self.system.user_is_staff:
+            self.log_action('uploadAnnotated %s' % data)
+            return self.upload_file(data, is_annotated=True)
+
         elif dispatch=='unscore' and self.system.user_is_staff:
-            log.info("unscore")
+            self.log_action('unscore %s' % data)
             return self.remove_score(data)
 
         else:
@@ -257,7 +281,8 @@ class StaffGradingModule(StaffGradingFields, XModule):
             - graded_by (username of staff who graded)
             - approved_by (username of staff who approved grade)
             - staff_comments (comments from staff)
-            - annotated_filename (in bucket on s3)
+            - annotated_s3_filename (in bucket on s3)
+            - annotated_staff_filename (original filename for annotated file, given by staff)
             - score (grade from staff, float)
             
         (course_id, module_id, username) should be unique (one file per staff grading download).
@@ -286,7 +311,20 @@ class StaffGradingModule(StaffGradingFields, XModule):
             for k, v in status.items():
                 item[k] = v
             item.save()
-            log.info("Saved SDB item %s" % item)
+            self.log_action("Saved SDB item %s" % item)
+
+        def update_annotated(self, s3_filename, staff_filename, uname):
+            '''
+            Update record for username uname, adding info for annotated file from staff.
+            '''
+            rset = self.get_all_status(extra_match=[ "username = '%s'" % str(uname) ])
+            if not rset:
+                return False, 'No record found'
+            item = rset[0]
+            item['annotated_s3_filename'] = s3_filename
+            item['annotated_staff_filename'] = staff_filename
+            item.save()
+            return True, 'Saved annotated file %s for %s' % (staff_filename, uname)
 
         def update_status(self, score, comments, extra_match=None):
             '''
@@ -297,7 +335,7 @@ class StaffGradingModule(StaffGradingFields, XModule):
                 return False, 'No record found'
             item = rset[0]
             if score is None:
-                log.info('Removing grade, previously %s' % item)
+                self.log_action('Removing grade, previously %s' % item)
                 item['score'] = None
                 if 'staff_comments' in item:
                     item.pop('staff_comments')
@@ -368,34 +406,43 @@ class StaffGradingModule(StaffGradingFields, XModule):
         (ok, msg) = self.fstat.update_status(None, None, extra_match=extra_match)
         return json.dumps({'ok':ok, 'msg': msg})
 
-    def do_download(self, data):
+    def do_download(self, data, is_annotated=False):
         '''
         Download file from s3. 
+        
+        If "is_annotated" then use the annotated file instead of the student submission.
         '''
         extra_match = []
         if 'fn' in data:
             extra_match.append("student_filename = '%s'" % data['fn'])
-        if 'uname' in data and self.system.user_is_staff:
+        if 'uname' in data and data['uname'] and self.system.user_is_staff:
             extra_match.append("username = '%s'" % data['uname'])
+        else:
+            extra_match.append("username = '%s'" % self.user.username)	# non-staff can only download their own files
             
         rs = self.fstat.get_all_status(extra_match=extra_match)
         if not rs:
             log.error("No files to download")
             return json.dumps({'ok': False, 'msg':'No files to download'})
         fs = rs[0]
+        if is_annotated:
+            s3fn = fs.get('annotated_s3_filename','none')
+        else:
+            s3fn = fs['s3_filename']
+
         conn = S3Connection(self.s3_interface['access_key'], self.s3_interface['secret_access_key'])
         bucketname = str(self.s3_interface['storage_bucket_name'])
         bucket = conn.lookup(bucketname.lower())
         if not bucket:
             log.error('cannot get bucket')
             return json.dumps({'ok': False, 'msg':'No files to download'})
-        key = bucket.get_key(fs['s3_filename'])
+        key = bucket.get_key(s3fn)
         if not key:
-            log.error('missing file %s' % fs['s3_filename'])
+            log.error('missing file %s' % s3fn)
             return json.dumps({'ok': False, 'msg':'No files to download'})
-        url = key.generate_url(expires_in=20, force_http=True)
+        url = key.generate_url(expires_in=60, force_http=True)	# temporary URL from s3
         # redir = '<html><head><meta http-equiv="Refresh" content="0; url=%s" /></head>' % url
-        log.info('download url=%s' % url)
+        self.log_action('download uname=%s, fn=%s, url=%s' % (data.get('uname', ''), s3fn, url))
         return json.dumps({'ok': True, 'url': url})
         
 
@@ -407,16 +454,15 @@ class StaffGradingModule(StaffGradingFields, XModule):
         safe_fname = unicode(urllib.quote(fname))
         return 'staff_grading/%s/%s/%s__%s' % (self.course_id, self.location.name, self.user.username, safe_fname)
         
-    def upload_file(self, data):
+        
+    def upload_file(self, data, is_annotated=False):
         """
         upload file to S3, and update SDB record.
-        """
-        #files = data.FILES or {}
 
+        if is_annotated, then the file is an annotated file (for student, from staff).
+        """
         fd = data['file'][0]
-        log.info("fd = %s" % fd)
-        log.info("size=%s" % fd.size)
-        log.info("name=%s" % fd.name)
+        self.log_action('upload_file fd=%s, size=%s, name=%s' % (fd, fd.size, fd.name))
 
         fd.seek(0)
         file_key = self.make_file_name(fd.name)
@@ -428,11 +474,16 @@ class StaffGradingModule(StaffGradingFields, XModule):
             raise
 
         log.info("url: %s" % s3_public_url)
-        link = '<a href="{0}" target="_blank">{1}</a>'.format(s3_public_url, fd.name)
+        # link = '<a href="{0}" target="_blank">{1}</a>'.format(s3_public_url, fd.name)
 
-        self.fstat.create_status(file_key, fd.name)	# update SDB record
+        # update SDB record
+        if is_annotated:
+            (ok, msg) = self.fstat.update_annotated(file_key, fd.name, data['uname'])
+        else:
+            (ok, msg) = self.fstat.create_status(file_key, fd.name)
 
-        return link
+        return json.dumps({'ok':ok, 'msg': msg})
+
 
     def get_score(self):
         """
