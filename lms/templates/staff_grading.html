@@ -109,6 +109,7 @@ background-color: #ffffff;
           <form id="grade_form" action="" method="post">
   	    Grade: <input type="text" name="grade"> <div id="grade_msg"></div>
   	    Comment: <textarea name="comment" rows="4"></textarea>
+  	    <input type="hidden" name="username">
   	    <input type="submit" value="Submit Grade" />
   	    <input type="submit" value="Cancel" />
   	</form>
@@ -229,7 +230,11 @@ js_sga = (function(modid){
 	sgasec.find('#' + mid + '_enter_grade_trig').click();
 	// sgasec.find('#' + mid + '_enter_grade_modal').show();
 	sgasec.find('#student_name').html("Grade for "+ uname);
+	sgasec.find('#grade_form').find("input[name=username]").val(uname);
+	
 	sgasec.find('#grade_form').submit(function(event) {
+	    event.stopImmediatePropagation();
+	    console.log(event);
             $(this).submit(function() {		// disable further clicks
 		return false;
 	    });
@@ -242,24 +247,25 @@ js_sga = (function(modid){
 		gform = sgasec.find('#grade_form');
 		// validate grade
 		grade = gform.find("input[name=grade]").val();
+		the_uname = gform.find("input[name=username]").val();
 		gnum = parseFloat(grade);
 		if ((!isNumber(grade)) | (gnum < 0) | (gnum > ${max_score})) {
 	            gform.find('#grade_msg').html("<font color='red'>Grade must be a valid number; max=${max_score}</font>");
 		}else{
 	            grade = parseFloat(grade);
    	            comments = gform.find("textarea[name=comment]").val();
-		    pdata = {'grade': grade, 'comments': comments, 'uname': uname};
+		    pdata = {'grade': grade, 'comments': comments, 'uname': the_uname};
 		    pdata = add_csrf(pdata);
 		    $.post("${ajax_url}/score", pdata)
 			.done(function( data ) {
 		            if (data.ok){
-				console.log("Grade for " + uname + " Entered");
+				console.log("Grade for " + the_uname + " Entered");
 				doneWithGrade();
 		            }else{
 				alert(data.msg);
 			    }
 			    getGradeSubmissions();
-			    getGradeSubmissions();
+			    setTimeout( function() {  getGradeSubmissions(); }, 1000);
 			});
 		}
             }
@@ -315,7 +321,7 @@ js_sga = (function(modid){
             data: "",
             success: function(data) {
 		update_sg_table(data);
-		console.log(data);
+		// console.log(data);
             },
             error: function() {
 		alert('Error: cannot connect to server');
