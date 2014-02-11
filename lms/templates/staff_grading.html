@@ -54,7 +54,7 @@ background-color: #ffffff;
     <table class="gridtable"><tr><th>Filename</th><th>Date</th><th>Grade</th><th>Comments</th></tr>
     % for fstat in rs:
         <tr>
-	    <td><a href='javascript:getFile({"fn":"${fstat['student_filename']}"})'>${fstat['student_filename']}</a></td>
+	    <td><a href='javascript:js_${modid}.getFile({"fn":"${fstat['student_filename']}"})'>${fstat['student_filename']}</a></td>
 	    <td>${fstat['created'][:16]}</td>
 	    <td>${fstat.get('score','(not graded yet)')}</td>
 	    <td>${fstat.get('staff_comments','')}</td>

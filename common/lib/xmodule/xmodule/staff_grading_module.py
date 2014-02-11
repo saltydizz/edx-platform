@@ -227,7 +227,7 @@ class StaffGradingModule(StaffGradingFields, XModule):
         Is it now past this problem's due date, including grace period?
         """
         return (self.close_date is not None and
-                datetime.datetime.now(UTC()) > self.close_date)
+                datetime.datetime.now(UTC) > self.close_date)
 
     def get_html(self):
         return self.system.render_template('conditional_ajax.html', {
