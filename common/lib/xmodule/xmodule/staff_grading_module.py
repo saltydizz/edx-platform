@@ -109,6 +109,13 @@ class StaffGradingFields(object):
         scope=Scope.user_state,
         default={},
     )
+    weight = Float(
+        help="Weight for student grades.",
+        default=1.0,
+        scope=Scope.settings,
+        values={"min": 0},
+    )
+    graded = Boolean(help="Grades will be considered in overall score.", default=False, scope=Scope.settings)
 
 
 class StaffGradingModule(StaffGradingFields, XModule):
