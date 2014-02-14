@@ -157,11 +157,14 @@ class StaffGradingModule(StaffGradingFields, XModule):
         Update the "score" variable from the grade stored in the SimpleDB FileStatus table.
         '''
         rset = self.fstat.get_status()
+        newscore = 'unchanged'
         if rset and rset[0].get('score', None) is not None:
-            self.score = rset[0].get('score')
-            log.info("[%s] Set local score for uploaded assignment by %s to %s" % (self.location.name, self.user, self.score))
+            newscore = rset[0].get('score')
         elif rset:
-            self.score = None
+            newscore = None
+        if (not newscore=='unchanged') and (not self.score == newscore):
+            self.score = newscore
+            self.publish_grade()
             log.info("[%s] Set local score for uploaded assignment by %s to %s" % (self.location.name, self.user, self.score))
             
     def is_graded(self):
@@ -175,6 +178,17 @@ class StaffGradingModule(StaffGradingFields, XModule):
         Access the problem's score
         """
         return self.score
+
+    def publish_grade(self):
+        """
+        Publishes the student's current grade to the system as an event
+        """
+        self.system.publish({
+            'event_name': 'grade',
+            'value': self.score,
+            'max_value': self.the_max_score,
+        })
+        return {'grade': self.score, 'max_grade': self.the_max_score}
 
     def max_score(self):
         """
