@@ -1143,6 +1143,80 @@ def remove_user_from_role(request, username_or_email, role, group_title, event_n
     return '<font color="green">Removed {0} from {1}</font>'.format(user, group_title)
 
 
+class GradeList(list):
+    """
+    Create row handler that automatically extends
+    to create an index for whatever item is being
+    added.
+    """
+    def __setitem__(self, index, value):
+        """
+        Extend list to fit item into requested
+        position.
+        """
+        if index >= len(self):
+            self.extend([None] * (index + 1 - len(self)))
+        list.__setitem__(self, index, value)
+
+
+class GradeTable(object):
+    """
+    Keep track of grades, by student, for all graded assignment
+    components.  Each student's grades are stored in a list.  The
+    index of this list specifies the assignment component.  Not
+    all lists have the same length, because at the start of going
+    through the set of grades, it is unknown what assignment
+    compoments exist.  This is because some students may not do
+    all the assignment components.
+
+    The student grades are then stored in a dict, with the student
+    id as the key.
+    """
+    def __init__(self):
+        self.components = OrderedDict()
+        self.grades = {}
+        self.current_row = GradeList()
+
+    def add_grade_to_row(self, component, score):
+        """
+        Creates component if needed, and assigns score.
+        """
+        if not component in self.components:
+            self.components[component] = len(self.components)
+        self.current_row[self.components[component]] = score
+
+    def start_row(self):
+        """
+        Create a new dynamically sizing GradeList to store components
+        """
+        self.current_row = GradeList()
+
+    def end_row(self, student_id):
+        """
+        Wrap up current row by assigning it to student id in
+        internal grades dict.
+        """
+        self.grades[student_id] = self.current_row
+
+    def get_grade(self, student_id):
+        """
+        Return list of grades for student; make sure length of
+        list is same as number of graded components.
+        """
+        row = self.grades.get(student_id, [])
+        ncomp = len(self.components)
+        if len(row) < ncomp:
+            row.extend([None] * (ncomp - len(row)))
+        return row
+
+    def get_graded_components(self):
+        """
+        Return a list of components that have been
+        discovered so far.
+        """
+        return self.components.keys()
+
+
 def get_student_grade_summary_data(request, course, course_id, get_grades=True, get_raw_scores=False, use_offline=False):
     '''
     Return data arrays with student identity and grades for specified course.
@@ -1168,52 +1242,6 @@ def get_student_grade_summary_data(request, course, course_id, get_grades=True, 
 
     header = [_u('ID'), _u('Username'), _u('Full Name'), _u('edX email'), _u('External email')]
 
-    class GradeList(list):
-        def __setitem__(self, index, value):
-            if index >= len(self):
-                self.extend([None]*(index + 1 - len(self)))
-            list.__setitem__(self, index, value)
-
-    class GradeTable(object):
-        """
-        Keep track of grades, by student, for all graded assignment components.
-        Each student's grades are stored in a list.  The index of this list specifies
-        the assignment component.  Not all lists have the same length, because
-        at the start of going through the set of grades, it is unknown what
-        assignment compoments exist.  This is because some students may not do
-        all the assignment components.
-
-        The student grades are then stored in a dict, with the student id as the key.
-        """
-        def __init__(self):
-            self.components = OrderedDict()
-            self.grades = {}
-            self.current_row = GradeList()
-
-        def add_grade_to_row(self, component, score):
-            if not component in self.components:
-                self.components[component] = len(self.components)
-            self.current_row[self.components[component]] = score
-
-        def start_row(self):
-            self.current_row = GradeList()
-
-        def end_row(self, student_id):
-            self.grades[student_id] = self.current_row
-
-        def get_grade(self, student_id):
-            '''
-            Return list of grades for student; make sure length of list is same as number of graded components.
-            '''
-            row = self.grades.get(student_id, [])
-            ncomp = len(self.components)
-            if len(row) < ncomp:
-                row.extend([None]*(ncomp-len(row)))
-            return row
-
-        def get_graded_components(self):
-            return self.components.keys()
-
     datatable = {'header': header, 'students': enrolled_students}
     data = []
 
@@ -1228,15 +1256,15 @@ def get_student_grade_summary_data(request, course, course_id, get_grades=True, 
 
         if get_grades:
             gradeset = student_grades(student, request, course, keep_raw_scores=get_raw_scores, use_offline=use_offline)
-            # log.debug('student={0}, gradeset={1}'.format(student,gradeset))
+            log.debug('student={0}, gradeset={1}'.format(student, gradeset))
             gtab.start_row()
             if get_raw_scores:
                 # TODO (ichuang) encode Score as dict instead of as list, so score[0] -> score['earned']
                 for score in gradeset['raw_scores']:
                     gtab.add_grade_to_row(score.section, (getattr(score, 'earned', '') or score[0]))
             else:
-                for gx in gradeset['section_breakdown']:
-                    gtab.add_grade_to_row(gx['label'], gx['percent'])
+                for grade_item in gradeset['section_breakdown']:
+                    gtab.add_grade_to_row(grade_item['label'], grade_item['percent'])
 
             gtab.end_row(student.id)
             student.grades = gtab.get_grade(student.id)
@@ -1245,13 +1273,14 @@ def get_student_grade_summary_data(request, course, course_id, get_grades=True, 
 
     # if getting grades, need to do a second pass, and add grades to each datarow;
     # on the first pass we don't know all the graded components
-
     if get_grades:
         for datarow in data:
-            sgrades = gtab.get_grade(datarow[0])        # get grades for student
+            # get grades for student
+            sgrades = gtab.get_grade(datarow[0])
             datarow += sgrades
 
-        assignments = gtab.get_graded_components()              # get graded components and add to table header
+        # get graded components and add to table header
+        assignments = gtab.get_graded_components()
         header += assignments
         datatable['assignments'] = assignments
 
