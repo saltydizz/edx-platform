@@ -245,7 +245,7 @@ def signin_user(request):
         # SSL login doesn't require a view, so redirect
         # branding and allow that to process the login if it
         # is enabled and the header is in the request.
-        return redirect(reverse('root'))
+        return external_auth.views.redirect_with_get('root', request.GET) 
     if settings.FEATURES.get('AUTH_USE_CAS'):
         # If CAS is enabled, redirect auth handling to there
         return redirect(reverse('cas-login'))
@@ -273,7 +273,7 @@ def register_user(request, extra_context=None):
     if settings.FEATURES.get('AUTH_USE_MIT_CERTIFICATES_IMMEDIATE_SIGNUP'):
         # Redirect to branding to process their certificate if SSL is enabled
         # and registration is disabled.
-        return redirect(reverse('root'))
+        return external_auth.views.redirect_with_get('root', request.GET)
 
     context = {
         'course_id': request.GET.get('course_id'),
@@ -567,7 +567,7 @@ def accounts_login(request):
     if settings.FEATURES['AUTH_USE_MIT_CERTIFICATES']:
         # SSL login doesn't require a view, so redirect
         # to branding and allow that to process the login.
-        return redirect(reverse('root'))
+        return external_auth.views.redirect_with_get('root', request.GET)
     # see if the "next" parameter has been set, whether it has a course context, and if so, whether
     # there is a course-specific place to redirect
     redirect_to = request.GET.get('next')
