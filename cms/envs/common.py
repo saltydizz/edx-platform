@@ -586,7 +586,10 @@ OPTIONAL_APPS = (
     'openassessment',
     'openassessment.assessment',
     'openassessment.workflow',
-    'openassessment.xblock'
+    'openassessment.xblock',
+
+    # Adds edx_sga
+    'edx_sga'
 )
 
 
@@ -602,6 +605,12 @@ for app_name in OPTIONAL_APPS:
         except ImportError:
             continue
     INSTALLED_APPS += (app_name,)
+
+# Add SGA specific storage info
+from edx_sga.blobstorage.fs import FilesystemBlobStorage
+BLOB_STORAGE = FilesystemBlobStorage.factory_from_config({
+        'path': '/edx/var/edxapp/sga_storage'
+})
 
 ### ADVANCED_SECURITY_CONFIG
 # Empty by default

@@ -1538,6 +1538,12 @@ for app_name in OPTIONAL_APPS:
 # See common/djangoapps/third_party_auth/settings.py for configuration details.
 THIRD_PARTY_AUTH = {}
 
+# Add SGA specific storage info
+from edx_sga.blobstorage.fs import FilesystemBlobStorage
+BLOB_STORAGE = FilesystemBlobStorage.factory_from_config({
+        'path': '/edx/var/edxapp/sga_storage'
+})
+
 ### ADVANCED_SECURITY_CONFIG
 # Empty by default
 ADVANCED_SECURITY_CONFIG = {}
