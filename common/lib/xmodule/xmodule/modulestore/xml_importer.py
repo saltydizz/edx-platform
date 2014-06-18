@@ -165,24 +165,17 @@ def import_from_xml(
         else:
             dest_course_id = course_key
 
-        if create_new_course:
-            # this tests if exactly this course (ignoring case) exists; so, it checks the run
-            if store.has_course(dest_course_id, ignore_case=True):
-                log.debug(
-                    "Skipping import of course with id, {0},"
-                    "since it collides with an existing one".format(dest_course_id)
-                )
-                continue
-            else:
-                try:
-                    store.create_course(dest_course_id.org, dest_course_id.offering)
-                except InvalidLocationError:
-                    # course w/ same org and course exists and store is old mongo
-                    log.debug(
-                        "Skipping import of course with id, {0},"
-                        "since it collides with an existing one".format(dest_course_id)
-                    )
-                    continue
+        # Creates a new course if it doesn't already exist
+        if create_new_course and not store.has_course(dest_course_id, ignore_case=True):
+            try:
+                store.create_course(dest_course_id.org, dest_course_id.offering)
+            except InvalidLocationError:
+                # course w/ same org and course exists and store is old mongo
+                 log.debug(
+                     "Skipping import of course with id, {0},"
+                     "since it collides with an existing one".format(dest_course_id)
+                 )
+                 continue
 
         try:
             # turn off all write signalling while importing as this
