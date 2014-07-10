@@ -2,7 +2,7 @@
 #
 # If you open a pull request that adds a new dependency, you should notify:
 #   * @mollydb - to check licensing
-#   * One of @e0d or @feanil - to check system requirements
+#   * One of @e0d, @jarv, or @feanil - to check system requirements
 
 # Python libraries to install directly from github
 
@@ -36,3 +36,6 @@ git+https://github.com/mitocw/django-cas.git@60a5b8e5a62e63e0d5d224a87f0b489201a
 -e git+https://github.com/edx/edx-val.git@ba00a5f2e0571e9a3f37d293a98efe4cbca850d5#egg=edx-val
 -e git+https://github.com/edx/edx-milestones.git@4dfe78a2aae9559ccc979746d13a9b67f0ec311e#egg=edx-milestones
 -e git+https://github.com/pmitros/RecommenderXBlock.git@a606d00bdf39bd0a4ae9c51773b69b9eb98934ff#egg=recommender-xblock
+
+# Third Party XBlocks
+-e git+https://github.com/mitodl/edx-sga@212810c52039fcf9f1346a90168a4c05cdc8e1d8#egg=edx-sga
