@@ -32,7 +32,7 @@ import json
 from path import path
 
 from .discussionsettings import *
-from .modulestore_settings import *
+from xmodule.modulestore.modulestore_settings import update_module_store_settings
 
 from lms.lib.xblock.mixin import LmsBlockMixin
 
