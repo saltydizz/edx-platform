@@ -576,6 +576,7 @@ def try_change_enrollment(request):
             log.exception("Exception automatically enrolling after login: {0}".format(str(e)))
 
 
+@login_required
 @require_POST
 def change_enrollment(request):
     """
