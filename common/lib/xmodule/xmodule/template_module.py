@@ -55,10 +55,7 @@ class CustomTagDescriptor(RawDescriptor):
         # cdodge: look up the template as a module
         template_loc = self.location.replace(category='custom_tag_template', name=template_name)
 
-        try:
-            template_module = system.load_item(template_loc)
-        except:
-            template_module = system.load_item(template_loc.for_branch('draft'))
+        template_module = system.load_item(template_loc)
         template_module_data = template_module.data
         template = Template(template_module_data)
         return template.render(**params)
