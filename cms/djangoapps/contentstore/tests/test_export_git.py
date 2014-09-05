@@ -34,7 +34,7 @@ class TestExportGit(CourseTestCase):
         self.course_module = modulestore().get_course(self.course.id)
         self.test_url = reverse_course_url('export_git', self.course.id)
 
-    def make_bare_repo(self, repo_name):
+    def make_bare_repo_with_course(self, repo_name):
         """
         Make a local bare repo suitable for exporting to in
         tests
@@ -52,8 +52,9 @@ class TestExportGit(CourseTestCase):
         self.addCleanup(shutil.rmtree, bare_repo_dir)
 
         subprocess.check_output(['git', '--bare', 'init', ], cwd=bare_repo_dir)
-
-        return bare_repo_dir
+        self.populate_course()
+        self.course_module.giturl = 'file://{}'.format(bare_repo_dir)
+        modulestore().update_item(self.course_module, self.user.id)
 
     def test_giturl_missing(self):
         """
@@ -101,11 +102,7 @@ class TestExportGit(CourseTestCase):
         Test successful course export response.
         """
 
-        bare_repo_dir = self.make_bare_repo('test_repo')
-        self.populate_course()
-        self.course_module.giturl = 'file://{}'.format(bare_repo_dir)
-        modulestore().update_item(self.course_module, self.user.id)
-
+        self.make_bare_repo_with_course('test_repo')
         response = self.client.get('{}?action=push'.format(self.test_url))
         self.assertIn('Export Succeeded', response.content)
 
@@ -113,11 +110,6 @@ class TestExportGit(CourseTestCase):
         """
         Regression test for a bad directory pathing of repo's that have dots.
         """
-        bare_repo_dir = self.make_bare_repo('test.repo')
-        self.populate_course()
-
-        self.course_module.giturl = 'file://{}'.format(bare_repo_dir)
-        modulestore().update_item(self.course_module, self.user.id)
-
+        self.make_bare_repo_with_course('test.repo')
         response = self.client.get('{}?action=push'.format(self.test_url))
         self.assertIn('Export Succeeded', response.content)
