@@ -950,6 +950,9 @@ MIDDLEWARE_CLASSES = (
     'courseware.middleware.RedirectUnenrolledMiddleware',
 
     'course_wiki.middleware.WikiAccessMiddleware',
+
+    # django-impersonate middlware
+    'impersonate.middleware.ImpersonateMiddleware',
 )
 
 # Clickjacking protection can be enabled by setting this to 'DENY'
@@ -1476,6 +1479,9 @@ INSTALLED_APPS = (
 
     # edX Mobile API
     'mobile_api',
+
+    # django-impersonate
+    'impersonate',
 )
 
 ######################### MARKETING SITE ###############################
@@ -1842,3 +1848,5 @@ INVOICE_PAYMENT_INSTRUCTIONS = "This is where you can\nput directions on how peo
 COUNTRIES_OVERRIDE = {
     "TW": _("Taiwan"),
 }
+
+IMPERSONATE_CUSTOM_ALLOW = 'courseware.impersonate.check_impersonate'

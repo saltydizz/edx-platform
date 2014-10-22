@@ -18,4 +18,5 @@ urlpatterns = patterns(
         r'^v1/forum_roles/(?P<name>[a-zA-Z]+)/users/$',
         user_api_views.ForumRoleUsersListView.as_view()
     ),
+    url(r'^impersonate/', include('impersonate.urls')),
 )
