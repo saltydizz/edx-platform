@@ -42,7 +42,6 @@ from opaque_keys.edx.locations import SlashSeparatedCourseKey
 from xmodule.contentstore.django import contentstore
 from xmodule.modulestore.django import modulestore, ModuleI18nService
 from xmodule.modulestore.exceptions import ItemNotFoundError
-from xmodule.util.duedate import get_extended_due_date
 from xmodule_modifiers import (
     replace_course_urls,
     replace_jump_to_id_urls,
@@ -60,6 +59,8 @@ if settings.FEATURES.get('MILESTONES_APP', False):
     from milestones import api as milestones_api
     from milestones.exceptions import InvalidMilestoneRelationshipTypeException
     from util.milestones_helpers import serialize_user
+
+from .field_overrides import OverrideFieldData
 
 log = logging.getLogger(__name__)
 
@@ -179,7 +180,7 @@ def toc_for_course(request, course, active_chapter, active_section, field_data_c
                     sections.append({'display_name': section.display_name_with_default,
                                      'url_name': section.url_name,
                                      'format': section.format if section.format is not None else '',
-                                     'due': get_extended_due_date(section),
+                                     'due': section.due,
                                      'active': active,
                                      'graded': section.graded,
                                      })
@@ -523,9 +524,12 @@ def get_module_system_for_user(user, field_data_cache,
             request_token=request_token
         )
         # rebinds module to a different student.  We'll change system, student_data, and scope_ids
+        authored_data = OverrideFieldData.wrap(
+            real_user, module.descriptor._field_data  # pylint: disable=protected-access
+        )
         module.descriptor.bind_for_student(
             inner_system,
-            LmsFieldData(module.descriptor._field_data, inner_student_data)  # pylint: disable=protected-access
+            LmsFieldData(authored_data, inner_student_data)
         )
         module.descriptor.scope_ids = (
             module.descriptor.scope_ids._replace(user_id=real_user.id)  # pylint: disable=protected-access
@@ -714,7 +718,8 @@ def get_module_for_descriptor_internal(user, descriptor, field_data_cache, cours
         request_token=request_token
     )
 
-    descriptor.bind_for_student(system, field_data)  # pylint: disable=protected-access
+    authored_data = OverrideFieldData.wrap(user, descriptor._field_data)  # pylint: disable=protected-access
+    descriptor.bind_for_student(system, LmsFieldData(authored_data, student_data))
     descriptor.scope_ids = descriptor.scope_ids._replace(user_id=user.id)  # pylint: disable=protected-access
     return descriptor
 

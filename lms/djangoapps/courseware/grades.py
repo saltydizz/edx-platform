@@ -19,7 +19,6 @@ from xmodule import graders
 from xmodule.graders import Score
 from xmodule.modulestore.django import modulestore
 from xmodule.modulestore.exceptions import ItemNotFoundError
-from xmodule.util.duedate import get_extended_due_date
 from .models import StudentModule
 from .module_render import get_module_for_descriptor
 from .module_utils import yield_dynamic_descriptor_descendents
@@ -372,7 +371,7 @@ def _progress_summary(student, request, course):
                     'scores': scores,
                     'section_total': section_total,
                     'format': module_format,
-                    'due': get_extended_due_date(section_module),
+                    'due': section_module.due,
                     'graded': graded,
                 })
 
