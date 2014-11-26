@@ -437,7 +437,6 @@ MONGODB_LOG = {
     'db': 'xlog',
 }
 
-
 # Enable EdxNotes for tests.
 FEATURES['ENABLE_EDXNOTES'] = True
 
@@ -449,3 +448,6 @@ FEATURES['MILESTONES_APP'] = True
 
 # ENTRANCE EXAMS
 FEATURES['ENTRANCE_EXAMS'] = True
+
+######### personal online courses #########
+INSTALLED_APPS += ('pocs',)
