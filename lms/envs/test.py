@@ -397,4 +397,3 @@ MONGODB_LOG = {
 
 ######### personal online courses #########
 INSTALLED_APPS += ('pocs',)
-
