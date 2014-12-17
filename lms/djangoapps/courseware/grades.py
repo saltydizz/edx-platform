@@ -24,6 +24,8 @@ from .module_render import get_module_for_descriptor
 from .module_utils import yield_dynamic_descriptor_descendents
 from submissions import api as sub_api  # installed from the edx-submissions repository
 from opaque_keys import InvalidKeyError
+from opaque_keys.edx.keys import CourseKey
+
 
 
 log = logging.getLogger("edx.courseware")
@@ -500,7 +502,7 @@ def iterate_grades_for(course_or_id, students):
         make up the final grade. (For display)
     - raw_scores: contains scores for every graded module
     """
-    if isinstance(course_or_id, basestring):
+    if isinstance(course_or_id, (basestring, CourseKey)):
         course = courses.get_course_by_id(course_or_id)
     else:
         course = course_or_id
