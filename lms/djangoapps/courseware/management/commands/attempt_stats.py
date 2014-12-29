@@ -59,7 +59,8 @@ def compute_stats(course_id):
     course_url = pminfo.course.location.url()
     staff_role = roles.CourseStaffRole(course_url)
     inst_role = roles.CourseInstructorRole(course_url)
-    exclude_groups = staff_role._group_names + inst_role._group_names
+    beta_role = roles.CourseBetaTesterRole(course_url)
+    exclude_groups = staff_role._group_names + inst_role._group_names + beta_role._group_names
 
     for rpmod in pminfo.rpmods:
         assignment_set_name = rpmod.ra_ps.display_name
