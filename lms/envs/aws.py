@@ -468,3 +468,17 @@ REGISTRATION_CODE_LENGTH = ENV_TOKENS.get('REGISTRATION_CODE_LENGTH', 8)
 # REGISTRATION CODES DISPLAY INFORMATION
 INVOICE_CORP_ADDRESS = ENV_TOKENS.get('INVOICE_CORP_ADDRESS', INVOICE_CORP_ADDRESS)
 INVOICE_PAYMENT_INSTRUCTIONS = ENV_TOKENS.get('INVOICE_PAYMENT_INSTRUCTIONS', INVOICE_PAYMENT_INSTRUCTIONS)
+
+##### Personal Online Courses #####
+if FEATURES.get('PERSONAL_ONLINE_COURSES'):
+    INSTALLED_APPS += ('pocs')
+    MIDDLEWARE_CLASSES += ('pocs.overrides.PocMiddleware')
+    FIELD_OVERRIDE_PROVIDERS += (
+        'pocs.overrides.PersonalOnlineCoursesOverrideProvider'
+    )
+
+##### Individual Due Date Extensions #####
+if FEATURES.get('INDIVIDUAL_DUE_DATES'):
+    FIELD_OVERRIDE_PROVIDERS += (
+        'courseware.student_field_overrides.IndividualStudentOverrideProvider'
+    )
