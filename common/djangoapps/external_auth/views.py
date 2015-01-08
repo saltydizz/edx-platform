@@ -22,7 +22,7 @@ from django.core.exceptions import ValidationError
 if settings.FEATURES.get('AUTH_USE_CAS'):
     from django_cas.views import login as django_cas_login
 
-from student.models import UserProfile
+from student.models import UserProfile, Registration
 
 from django.http import HttpResponse, HttpResponseRedirect, HttpRequest, HttpResponseForbidden
 from django.utils.http import urlquote, is_safe_url
@@ -220,6 +220,8 @@ def _external_login_or_signup(request,
         if settings.FEATURES.get('BYPASS_ACTIVATION_EMAIL_FOR_EXTAUTH'):
             # if BYPASS_ACTIVATION_EMAIL_FOR_EXTAUTH, we trust external auth and activate any users
             # that aren't already active
+            registration = Registration.objects.get(user=user)
+            student.views.activate_account(request, registration.activation_key)
             user.is_active = True
             user.save()
             if settings.FEATURES['SQUELCH_PII_IN_LOGS']:
