@@ -23,14 +23,14 @@ from xmodule.modulestore.tests.factories import (
     CourseFactory,
     ItemFactory,
 )
-from pocs import ACTIVE_POC_KEY
+from pocs import ACTIVE_CCX_KEY
 from ..models import (
     PersonalOnlineCourse,
     PocMembership,
     PocFutureMembership,
 )
-from ..overrides import get_override_for_poc, override_field_for_poc
-from .. import ACTIVE_POC_KEY
+from ..overrides import get_override_for_ccx, override_field_for_ccx
+from .. import ACTIVE_CCX_KEY
 from .factories import (
     PocFactory,
     PocMembershipFactory,
@@ -199,11 +199,11 @@ class TestCoachDashboard(ModuleStoreTestCase, LoginEnrollmentTestCase):
         # Make sure start date set on course, follows start date of earliest
         # scheduled chapter
         poc = PersonalOnlineCourse.objects.get()
-        course_start = get_override_for_poc(poc, self.course, 'start')
+        course_start = get_override_for_ccx(poc, self.course, 'start')
         self.assertEqual(str(course_start)[:-9], u'2014-11-20 00:00')
 
         # Make sure grading policy adjusted
-        policy = get_override_for_poc(poc, self.course, 'grading_policy',
+        policy = get_override_for_ccx(poc, self.course, 'grading_policy',
                                       self.course.grading_policy)
         self.assertEqual(policy['GRADER'][0]['type'], 'Homework')
         self.assertEqual(policy['GRADER'][0]['min_count'], 4)
@@ -404,7 +404,7 @@ class TestCoachDashboard(ModuleStoreTestCase, LoginEnrollmentTestCase):
 
 
 @override_settings(FIELD_OVERRIDE_PROVIDERS=(
-    'pocs.overrides.PersonalOnlineCoursesOverrideProvider',))
+    'pocs.overrides.CustomCoursesForEdxOverrideProvider',))
 class TestPocGrades(ModuleStoreTestCase, LoginEnrollmentTestCase):
     """
     Tests for Personal Online Courses views.
@@ -471,7 +471,7 @@ class TestPocGrades(ModuleStoreTestCase, LoginEnrollmentTestCase):
         get_course.return_value = course
         self.addCleanup(patch_context.stop)
 
-        override_field_for_poc(poc, course, 'grading_policy', {
+        override_field_for_ccx(poc, course, 'grading_policy', {
             'GRADER': [
                 {'drop_count': 0,
                  'min_count': 2,
@@ -481,7 +481,7 @@ class TestPocGrades(ModuleStoreTestCase, LoginEnrollmentTestCase):
             ],
             'GRADE_CUTOFFS': {'Pass': 0.75},
         })
-        override_field_for_poc(
+        override_field_for_ccx(
             poc, sections[-1], 'visible_to_staff_only', True)
 
     @patch('pocs.views.render_to_response', intercept_renderer)
@@ -527,9 +527,9 @@ class TestPocGrades(ModuleStoreTestCase, LoginEnrollmentTestCase):
 
         self.client.login(username=self.student.username, password="test")
         session = self.client.session
-        session[ACTIVE_POC_KEY] = self.poc.id
+        session[ACTIVE_CCX_KEY] = self.poc.id
         session.save()
-        self.client.session.get(ACTIVE_POC_KEY)
+        self.client.session.get(ACTIVE_CCX_KEY)
         url = reverse(
             'progress',
             kwargs={'course_id': self.course.id.to_deprecated_string()}
@@ -574,7 +574,7 @@ class TestSwitchActivePoc(ModuleStoreTestCase, LoginEnrollmentTestCase):
     def verify_active_poc(self, request, id=None):
         if id:
             id = str(id)
-        self.assertEqual(id, request.session.get(ACTIVE_POC_KEY, None))
+        self.assertEqual(id, request.session.get(ACTIVE_CCX_KEY, None))
 
     def test_unauthorized_cannot_switch_to_poc(self):
         switch_url = reverse(
@@ -622,7 +622,7 @@ class TestSwitchActivePoc(ModuleStoreTestCase, LoginEnrollmentTestCase):
         self.client.login(username=self.user.username, password="test")
         # pre-seed the session with the poc id
         session = self.client.session
-        session[ACTIVE_POC_KEY] = str(self.poc.id)
+        session[ACTIVE_CCX_KEY] = str(self.poc.id)
         session.save()
         switch_url = reverse(
             'switch_active_poc',
@@ -649,7 +649,7 @@ class TestSwitchActivePoc(ModuleStoreTestCase, LoginEnrollmentTestCase):
         self.client.login(username=self.user.username, password="test")
         # pre-seed the session with the poc id
         session = self.client.session
-        session[ACTIVE_POC_KEY] = str(self.poc.id)
+        session[ACTIVE_CCX_KEY] = str(self.poc.id)
         session.save()
         switch_url = reverse(
             'switch_active_poc',

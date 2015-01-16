@@ -58,7 +58,7 @@ class TestEmailEnrollmentState(ModuleStoreTestCase):
         """verify behavior for non-user email address
         """
         ee_state = self.create_one(email='nobody@nowhere.com')
-        for attr in ['user', 'member', 'full_name', 'in_poc']:
+        for attr in ['user', 'member', 'full_name', 'in_ccx']:
             value = getattr(ee_state, attr, 'missing attribute')
             self.assertFalse(value, "{}: {}".format(value, attr))
 
@@ -68,7 +68,7 @@ class TestEmailEnrollmentState(ModuleStoreTestCase):
         self.create_user()
         ee_state = self.create_one()
         self.assertTrue(ee_state.user)
-        self.assertFalse(ee_state.in_poc)
+        self.assertFalse(ee_state.in_ccx)
         self.assertEqual(ee_state.member, self.user)
         self.assertEqual(ee_state.full_name, self.user.profile.name)
 
@@ -78,7 +78,7 @@ class TestEmailEnrollmentState(ModuleStoreTestCase):
         self.create_user()
         self.register_user_in_poc()
         ee_state = self.create_one()
-        for attr in ['user', 'in_poc']:
+        for attr in ['user', 'in_ccx']:
             self.assertTrue(
                 getattr(ee_state, attr, False),
                 "attribute {} is missing or False".format(attr)
@@ -96,7 +96,7 @@ class TestEmailEnrollmentState(ModuleStoreTestCase):
         expected = {
             'user': True,
             'member': self.user,
-            'in_poc': True,
+            'in_ccx': True,
         }
         for expected_key, expected_value in expected.iteritems():
             self.assertTrue(expected_key in ee_dict)
@@ -108,7 +108,7 @@ class TestEmailEnrollmentState(ModuleStoreTestCase):
         ee_state = self.create_one()
         representation = repr(ee_state)
         self.assertTrue('user=True' in representation)
-        self.assertTrue('in_poc=True' in representation)
+        self.assertTrue('in_ccx=True' in representation)
         member = 'member={}'.format(self.user)
         self.assertTrue(member in representation)
 
@@ -214,14 +214,14 @@ class TestEnrollEmail(ModuleStoreTestCase):
             )
         self.assertTrue(membership.exists())
 
-    def check_enrollment_state(self, state, in_poc, member, user):
+    def check_enrollment_state(self, state, in_ccx, member, user):
         """Verify an enrollment state object against provided arguments
 
-        state.in_poc will always be a boolean
+        state.in_ccx will always be a boolean
         state.user will always be a boolean
         state.member will be a Django user object or None
         """
-        self.assertEqual(in_poc, state.in_poc)
+        self.assertEqual(in_ccx, state.in_ccx)
         self.assertEqual(member, state.member)
         self.assertEqual(user, state.user)
 
@@ -382,14 +382,14 @@ class TestUnenrollEmail(ModuleStoreTestCase):
             poc=self.poc, email=self.email
         )
 
-    def check_enrollment_state(self, state, in_poc, member, user):
+    def check_enrollment_state(self, state, in_ccx, member, user):
         """Verify an enrollment state object against provided arguments
 
-        state.in_poc will always be a boolean
+        state.in_ccx will always be a boolean
         state.user will always be a boolean
         state.member will be a Django user object or None
         """
-        self.assertEqual(in_poc, state.in_poc)
+        self.assertEqual(in_ccx, state.in_ccx)
         self.assertEqual(member, state.member)
         self.assertEqual(user, state.user)
 
@@ -486,7 +486,7 @@ class TestUnenrollEmail(ModuleStoreTestCase):
 
 
 class TestUserPocList(ModuleStoreTestCase):
-    """Unit tests for poc.utils.get_all_pocs_for_user"""
+    """Unit tests for poc.utils.get_all_ccxs_for_user"""
 
     def setUp(self):
         """Create required infrastructure for tests"""
@@ -511,8 +511,8 @@ class TestUserPocList(ModuleStoreTestCase):
         return get_course_about_section(self.course, 'title')
 
     def call_FUT(self, user):
-        from pocs.utils import get_all_pocs_for_user
-        return get_all_pocs_for_user(user)
+        from pocs.utils import get_all_ccxs_for_user
+        return get_all_ccxs_for_user(user)
 
     def test_anonymous_sees_no_pocs(self):
         memberships = self.call_FUT(self.anonymous)
@@ -538,11 +538,11 @@ class TestUserPocList(ModuleStoreTestCase):
         this_membership = memberships[0]
         self.assertTrue(this_membership)
         # structure contains the expected keys
-        for key in ['poc_name', 'poc_url']:
+        for key in ['ccx_name', 'ccx_url']:
             self.assertTrue(key in this_membership.keys())
         url_parts = [self.course.id.to_deprecated_string(), str(self.poc.id)]
         # all parts of the poc url are present
         for part in url_parts:
-            self.assertTrue(part in this_membership['poc_url'])
+            self.assertTrue(part in this_membership['ccx_url'])
         actual_name = self.poc.display_name
-        self.assertEqual(actual_name, this_membership['poc_name'])
+        self.assertEqual(actual_name, this_membership['ccx_name'])

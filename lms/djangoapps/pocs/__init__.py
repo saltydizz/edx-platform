@@ -1,1 +1,1 @@
-ACTIVE_POC_KEY = '_poc_id'
+ACTIVE_CCX_KEY = '_poc_id'

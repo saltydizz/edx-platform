@@ -244,7 +244,7 @@
     ></div>
   %endif
   
-  %if section_data['access']['instructor'] and settings.FEATURES.get('PERSONAL_ONLINE_COURSES', False):
+  %if section_data['access']['instructor'] and settings.FEATURES.get('CUSTOM_COURSES_EDX', False):
     <div class="auth-list-container"
       data-rolename="poc_coach"
       data-display-name="${_("POC Coaches")}"

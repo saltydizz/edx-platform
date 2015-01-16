@@ -382,9 +382,9 @@ class DiscussionTab(EnrolledOrStaffTab):
         )
 
     def can_display(self, course, settings, is_user_authenticated, is_user_staff, is_user_enrolled):
-        if settings.FEATURES.get('PERSONAL_ONLINE_COURSES', False):
-            from pocs.overrides import get_current_poc
-            if get_current_poc():
+        if settings.FEATURES.get('CUSTOM_COURSES_EDX', False):
+            from pocs.overrides import get_current_ccx
+            if get_current_ccx():
                 return False
         super_can_display = super(DiscussionTab, self).can_display(
             course, settings, is_user_authenticated, is_user_staff, is_user_enrolled
@@ -756,7 +756,7 @@ class PocCoachTab(CourseTab):
         #      this is difficult to do because the user isn't passed in.
         #      We need either a hack or an architectural realignment.
         return (
-            settings.FEATURES.get('PERSONAL_ONLINE_COURSES', False) and
+            settings.FEATURES.get('CUSTOM_COURSES_EDX', False) and
             super(PocCoachTab, self).can_display(course, settings, *args, **kw))
 
 

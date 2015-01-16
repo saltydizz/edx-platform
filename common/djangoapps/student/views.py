@@ -663,15 +663,15 @@ def dashboard(request):
     courses_requirements_not_met = get_pre_requisite_courses_not_completed(user, courses_having_prerequisites)
 
     poc_membership_triplets = []
-    if settings.FEATURES.get('PERSONAL_ONLINE_COURSES', False):
-        from pocs import ACTIVE_POC_KEY
-        from pocs.utils import get_poc_membership_triplets
-        poc_membership_triplets = get_poc_membership_triplets(
+    if settings.FEATURES.get('CUSTOM_COURSES_EDX', False):
+        from pocs import ACTIVE_CCX_KEY
+        from pocs.utils import get_ccx_membership_triplets
+        poc_membership_triplets = get_ccx_membership_triplets(
             user, course_org_filter, org_filter_out_set
         )
         # should we deselect any active POC at this time so that we don't have
         # to change the URL for viewing a course?  I think so.
-        request.session[ACTIVE_POC_KEY] = None
+        request.session[ACTIVE_CCX_KEY] = None
 
     context = {
         'enrollment_message': enrollment_message,
@@ -1868,8 +1868,8 @@ def activate_account(request, key):
                 if cea.auto_enroll:
                     CourseEnrollment.enroll(student[0], cea.course_id)
 
-            # enroll student in any pending POCs he/she may have if auto_enroll flag is set
-            if settings.FEATURES.get('PERSONAL_ONLINE_COURSES'):
+            # enroll student in any pending CCXs he/she may have if auto_enroll flag is set
+            if settings.FEATURES.get('CUSTOM_COURSES_EDX'):
                 from pocs.models import PocMembership, PocFutureMembership
                 pfms = PocFutureMembership.objects.filter(
                     email=student[0].email

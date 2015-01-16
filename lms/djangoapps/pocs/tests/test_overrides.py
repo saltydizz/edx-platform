@@ -9,11 +9,11 @@ from xmodule.modulestore.tests.django_utils import ModuleStoreTestCase
 from xmodule.modulestore.tests.factories import CourseFactory, ItemFactory
 
 from ..models import PersonalOnlineCourse
-from ..overrides import override_field_for_poc
+from ..overrides import override_field_for_ccx
 
 
 @override_settings(FIELD_OVERRIDE_PROVIDERS=(
-    'pocs.overrides.PersonalOnlineCoursesOverrideProvider',))
+    'pocs.overrides.CustomCoursesForEdxOverrideProvider',))
 class TestFieldOverrides(ModuleStoreTestCase):
     """
     Make sure field overrides behave in the expected manner.
@@ -47,7 +47,7 @@ class TestFieldOverrides(ModuleStoreTestCase):
             coach=AdminFactory.create())
         poc.save()
 
-        patch = mock.patch('pocs.overrides.get_current_poc')
+        patch = mock.patch('pocs.overrides.get_current_ccx')
         self.get_poc = get_poc = patch.start()
         get_poc.return_value = poc
         self.addCleanup(patch.stop)
@@ -66,7 +66,7 @@ class TestFieldOverrides(ModuleStoreTestCase):
         """
         poc_start = datetime.datetime(2014, 12, 25, 00, 00, tzinfo=pytz.UTC)
         chapter = self.course.get_children()[0]
-        override_field_for_poc(self.poc, chapter, 'start', poc_start)
+        override_field_for_ccx(self.poc, chapter, 'start', poc_start)
         self.assertEquals(chapter.start, poc_start)
 
     def test_override_is_inherited(self):
@@ -75,7 +75,7 @@ class TestFieldOverrides(ModuleStoreTestCase):
         """
         poc_start = datetime.datetime(2014, 12, 25, 00, 00, tzinfo=pytz.UTC)
         chapter = self.course.get_children()[0]
-        override_field_for_poc(self.poc, chapter, 'start', poc_start)
+        override_field_for_ccx(self.poc, chapter, 'start', poc_start)
         self.assertEquals(chapter.get_children()[0].start, poc_start)
         self.assertEquals(chapter.get_children()[1].start, poc_start)
 
@@ -88,7 +88,7 @@ class TestFieldOverrides(ModuleStoreTestCase):
         poc_due = datetime.datetime(2015, 1, 1, 00, 00, tzinfo=pytz.UTC)
         chapter = self.course.get_children()[0]
         chapter.display_name = 'itsme!'
-        override_field_for_poc(self.poc, chapter, 'due', poc_due)
+        override_field_for_ccx(self.poc, chapter, 'due', poc_due)
         vertical = chapter.get_children()[0].get_children()[0]
         self.assertEqual(vertical.due, poc_due)
 

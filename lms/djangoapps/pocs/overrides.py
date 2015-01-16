@@ -8,81 +8,81 @@ import threading
 from contextlib import contextmanager
 
 from courseware.field_overrides import FieldOverrideProvider
-from pocs import ACTIVE_POC_KEY
+from pocs import ACTIVE_CCX_KEY
 
 from .models import PocMembership, PocFieldOverride
 
 
-class PersonalOnlineCoursesOverrideProvider(FieldOverrideProvider):
+class CustomCoursesForEdxOverrideProvider(FieldOverrideProvider):
     """
     A concrete implementation of
     :class:`~courseware.field_overrides.FieldOverrideProvider` which allows for
     overrides to be made on a per user basis.
     """
     def get(self, block, name, default):
-        poc = get_current_poc()
-        if poc:
-            return get_override_for_poc(poc, block, name, default)
+        ccx = get_current_ccx()
+        if ccx:
+            return get_override_for_ccx(ccx, block, name, default)
         return default
 
 
-class _PocContext(threading.local):
+class _CcxContext(threading.local):
     """
-    A threading local used to implement the `with_poc` context manager, that
+    A threading local used to implement the `with_ccx` context manager, that
     keeps track of the POC currently set as the context.
     """
-    poc = None
+    ccx = None
 
 
-_POC_CONTEXT = _PocContext()
+_CCX_CONTEXT = _CcxContext()
 
 
 @contextmanager
-def poc_context(poc):
+def ccx_context(ccx):
     """
     A context manager which can be used to explicitly set the POC that is in
     play for field overrides.  This mechanism overrides the standard mechanism
     of looking in the user's session to see if they are enrolled in a POC and
     viewing that POC.
     """
-    prev = _POC_CONTEXT.poc
-    _POC_CONTEXT.poc = poc
+    prev = _CCX_CONTEXT.ccx
+    _CCX_CONTEXT.ccx = ccx
     yield
-    _POC_CONTEXT.poc = prev
+    _CCX_CONTEXT.ccx = prev
 
 
-def get_current_poc():
+def get_current_ccx():
     """
-    Return the poc that is active for this request.
+    Return the ccx that is active for this request.
     """
-    poc = _POC_CONTEXT.poc
-    if poc:
-        return poc
+    ccx = _CCX_CONTEXT.ccx
+    if ccx:
+        return ccx
 
 
-def get_override_for_poc(poc, block, name, default=None):
+def get_override_for_ccx(ccx, block, name, default=None):
     """
-    Gets the value of the overridden field for the `poc`.  `block` and `name`
+    Gets the value of the overridden field for the `ccx`.  `block` and `name`
     specify the block and the name of the field.  If the field is not
-    overridden for the given poc, returns `default`.
+    overridden for the given ccx, returns `default`.
     """
-    if not hasattr(block, '_poc_overrides'):
-        block._poc_overrides = {}
-    overrides = block._poc_overrides.get(poc.id)
+    if not hasattr(block, '_ccx_overrides'):
+        block._ccx_overrides = {}
+    overrides = block._ccx_overrides.get(ccx.id)
     if overrides is None:
-        overrides = _get_overrides_for_poc(poc, block)
-        block._poc_overrides[poc.id] = overrides
+        overrides = _get_overrides_for_ccx(ccx, block)
+        block._ccx_overrides[ccx.id] = overrides
     return overrides.get(name, default)
 
 
-def _get_overrides_for_poc(poc, block):
+def _get_overrides_for_ccx(ccx, block):
     """
     Returns a dictionary mapping field name to overriden value for any
     overrides set on this block for this POC.
     """
     overrides = {}
     query = PocFieldOverride.objects.filter(
-        poc=poc,
+        poc=ccx,
         location=block.location
     )
     for override in query:
@@ -92,45 +92,45 @@ def _get_overrides_for_poc(poc, block):
     return overrides
 
 
-def override_field_for_poc(poc, block, name, value):
+def override_field_for_ccx(ccx, block, name, value):
     """
-    Overrides a field for the `poc`.  `block` and `name` specify the block
+    Overrides a field for the `ccx`.  `block` and `name` specify the block
     and the name of the field on that block to override.  `value` is the
     value to set for the given field.
     """
     override, created = PocFieldOverride.objects.get_or_create(
-        poc=poc,
+        poc=ccx,
         location=block.location,
         field=name)
     field = block.fields[name]
     override.value = json.dumps(field.to_json(value))
     override.save()
 
-    if hasattr(block, '_poc_overrides'):
-        del block._poc_overrides[poc.id]
+    if hasattr(block, '_ccx_overrides'):
+        del block._ccx_overrides[ccx.id]
 
 
-def clear_override_for_poc(poc, block, name):
+def clear_override_for_ccx(ccx, block, name):
     """
-    Clears a previously set field override for the `poc`.  `block` and `name`
+    Clears a previously set field override for the `ccx`.  `block` and `name`
     specify the block and the name of the field on that block to clear.
     This function is idempotent--if no override is set, nothing action is
     performed.
     """
     try:
         PocFieldOverride.objects.get(
-            poc=poc,
+            poc=ccx,
             location=block.location,
             field=name).delete()
 
-        if hasattr(block, '_poc_overrides'):
-            del block._poc_overrides[poc.id]
+        if hasattr(block, '_ccx_overrides'):
+            del block._ccx_overrides[ccx.id]
 
     except PocFieldOverride.DoesNotExist:
         pass
 
 
-class PocMiddleware(object):
+class CcxMiddleware(object):
     """
     Checks to see if current session is examining a POC and sets the POC as
     the current POC for the override machinery if so.
@@ -139,21 +139,21 @@ class PocMiddleware(object):
         """
         Do the check.
         """
-        poc_id = request.session.get(ACTIVE_POC_KEY, None)
-        if poc_id is not None:
+        ccx_id = request.session.get(ACTIVE_CCX_KEY, None)
+        if ccx_id is not None:
             try:
                 membership = PocMembership.objects.get(
-                    student=request.user, active=True, poc__id__exact=poc_id
+                    student=request.user, active=True, poc__id__exact=ccx_id
                 )
-                _POC_CONTEXT.poc = membership.poc
+                _CCX_CONTEXT.ccx = membership.poc
             except PocMembership.DoesNotExist:
-                # if there is no membership, be sure to unset the active poc
-                _POC_CONTEXT.poc = None
-                request.session.pop(ACTIVE_POC_KEY)
+                # if there is no membership, be sure to unset the active ccx
+                _CCX_CONTEXT.ccx = None
+                request.session.pop(ACTIVE_CCX_KEY)
 
     def process_response(self, request, response):
         """
         Clean up afterwards.
         """
-        _POC_CONTEXT.poc = None
+        _CCX_CONTEXT.ccx = None
         return response
