@@ -33,7 +33,7 @@ from courseware.model_data import FieldDataCache
 from courseware.module_render import get_module_for_descriptor
 from edxmako.shortcuts import render_to_response
 from opaque_keys.edx.locations import SlashSeparatedCourseKey
-from student.roles import CoursePocCoachRole
+from student.roles import CourseCcxCoachRole
 
 from instructor.offline_gradecalc import student_grades
 from instructor.views.api import _split_input_list
@@ -59,7 +59,7 @@ TODAY = datetime.datetime.today  # for patching in tests
 
 def coach_dashboard(view):
     """
-    View decorator which enforces that the user have the POC coach role on the
+    View decorator which enforces that the user have the CCX coach role on the
     given course and goes ahead and translates the course_id from the Django
     route into a course object.
     """
@@ -70,10 +70,10 @@ def coach_dashboard(view):
         and modifying the view's call signature.
         """
         course_key = SlashSeparatedCourseKey.from_deprecated_string(course_id)
-        role = CoursePocCoachRole(course_key)
+        role = CourseCcxCoachRole(course_key)
         if not role.has_user(request.user):
             return HttpResponseForbidden(
-                _('You must be a POC Coach to access this view.'))
+                _('You must be a CCX Coach to access this view.'))
         course = get_course_by_id(course_key, depth=None)
         return view(request, course)
     return wrapper
@@ -84,7 +84,7 @@ def coach_dashboard(view):
 @coach_dashboard
 def dashboard(request, course):
     """
-    Display the POC Coach Dashboard.
+    Display the CCX Coach Dashboard.
     """
     ccx = get_ccx_for_coach(course, request.user)
     context = {
@@ -93,32 +93,32 @@ def dashboard(request, course):
     }
 
     if ccx:
-        schedule = get_poc_schedule(course, ccx)
+        schedule = get_ccx_schedule(course, ccx)
         grading_policy = get_override_for_ccx(
             ccx, course, 'grading_policy', course.grading_policy)
         context['schedule'] = json.dumps(schedule, indent=4)
         context['save_url'] = reverse(
-            'save_poc', kwargs={'course_id': course.id})
-        context['poc_members'] = PocMembership.objects.filter(poc=ccx)
+            'save_ccx', kwargs={'course_id': course.id})
+        context['ccx_members'] = PocMembership.objects.filter(poc=ccx)
         context['gradebook_url'] = reverse(
-            'poc_gradebook', kwargs={'course_id': course.id})
+            'ccx_gradebook', kwargs={'course_id': course.id})
         context['grades_csv_url'] = reverse(
-            'poc_grades_csv', kwargs={'course_id': course.id})
+            'ccx_grades_csv', kwargs={'course_id': course.id})
         context['grading_policy'] = json.dumps(grading_policy, indent=4)
         context['grading_policy_url'] = reverse(
-            'poc_set_grading_policy', kwargs={'course_id': course.id})
+            'ccx_set_grading_policy', kwargs={'course_id': course.id})
     else:
-        context['create_poc_url'] = reverse(
-            'create_poc', kwargs={'course_id': course.id})
+        context['create_ccx_url'] = reverse(
+            'create_ccx', kwargs={'course_id': course.id})
     return render_to_response('pocs/coach_dashboard.html', context)
 
 
 @ensure_csrf_cookie
 @cache_control(no_cache=True, no_store=True, must_revalidate=True)
 @coach_dashboard
-def create_poc(request, course):
+def create_ccx(request, course):
     """
-    Create a new POC
+    Create a new CCX
     """
     name = request.POST.get('name')
     ccx = PersonalOnlineCourse(
@@ -141,22 +141,22 @@ def create_poc(request, course):
             for vertical in sequential.get_children():
                 override_field_for_ccx(ccx, vertical, hidden, True)
 
-    url = reverse('poc_coach_dashboard', kwargs={'course_id': course.id})
+    url = reverse('ccx_coach_dashboard', kwargs={'course_id': course.id})
     return redirect(url)
 
 
 @ensure_csrf_cookie
 @cache_control(no_cache=True, no_store=True, must_revalidate=True)
 @coach_dashboard
-def save_poc(request, course):
+def save_ccx(request, course):
     """
-    Save changes to POC.
+    Save changes to CCX.
     """
     ccx = get_ccx_for_coach(course, request.user)
 
     def override_fields(parent, data, graded, earliest=None):
         """
-        Recursively apply POC schedule data to POC by overriding the
+        Recursively apply CCX schedule data to CCX by overriding the
         `visible_to_staff_only`, `start` and `due` fields for units in the
         course.
         """
@@ -210,7 +210,7 @@ def save_poc(request, course):
 
     return HttpResponse(
         json.dumps({
-            'schedule': get_poc_schedule(course, ccx),
+            'schedule': get_ccx_schedule(course, ccx),
             'grading_policy': json.dumps(policy, indent=4)}),
         content_type='application/json',
     )
@@ -221,13 +221,13 @@ def save_poc(request, course):
 @coach_dashboard
 def set_grading_policy(request, course):
     """
-    Set grading policy for the POC.
+    Set grading policy for the CCX.
     """
     ccx = get_ccx_for_coach(course, request.user)
     override_field_for_ccx(
         ccx, course, 'grading_policy', json.loads(request.POST['policy']))
 
-    url = reverse('poc_coach_dashboard', kwargs={'course_id': course.id})
+    url = reverse('ccx_coach_dashboard', kwargs={'course_id': course.id})
     return redirect(url)
 
 
@@ -265,7 +265,7 @@ def parse_date(datestring):
 
 def get_ccx_for_coach(course, coach):
     """
-    Looks to see if user is coach of a POC for this course.  Returns the POC or
+    Looks to see if user is coach of a CCX for this course.  Returns the CCX or
     None.
     """
     try:
@@ -276,13 +276,13 @@ def get_ccx_for_coach(course, coach):
         return None
 
 
-def get_poc_schedule(course, ccx):
+def get_ccx_schedule(course, ccx):
     """
-    Generate a JSON serializable POC schedule.
+    Generate a JSON serializable CCX schedule.
     """
     def visit(node, depth=1):
         """
-        Recursive generator function which yields POC schedule nodes.
+        Recursive generator function which yields CCX schedule nodes.
         """
         for child in node.get_children():
             start = get_override_for_ccx(ccx, child, 'start', None)
@@ -317,9 +317,9 @@ def get_poc_schedule(course, ccx):
 @ensure_csrf_cookie
 @cache_control(no_cache=True, no_store=True, must_revalidate=True)
 @coach_dashboard
-def poc_schedule(request, course):
+def ccx_schedule(request, course):
     ccx = get_ccx_for_coach(course, request.user)
-    schedule = get_poc_schedule(course, ccx)
+    schedule = get_ccx_schedule(course, ccx)
     json_schedule = json.dumps(schedule, indent=4)
     return HttpResponse(json_schedule, mimetype='application/json')
 
@@ -327,7 +327,7 @@ def poc_schedule(request, course):
 @ensure_csrf_cookie
 @cache_control(no_cache=True, no_store=True, must_revalidate=True)
 @coach_dashboard
-def poc_invite(request, course):
+def ccx_invite(request, course):
     """
     Invite users to new ccx
     """
@@ -359,15 +359,15 @@ def poc_invite(request, course):
                 unenroll_email(ccx, email, email_students=email_students)
         except ValidationError:
             pass  # maybe log this?
-    url = reverse('poc_coach_dashboard', kwargs={'course_id': course.id})
+    url = reverse('ccx_coach_dashboard', kwargs={'course_id': course.id})
     return redirect(url)
 
 
 @ensure_csrf_cookie
 @cache_control(no_cache=True, no_store=True, must_revalidate=True)
 @coach_dashboard
-def poc_student_management(request, course):
-    """Manage the enrollment of individual students in a POC
+def ccx_student_management(request, course):
+    """Manage the enrollment of individual students in a CCX
     """
     ccx = get_ccx_for_coach(course, request.user)
     action = request.POST.get('student-action', None)
@@ -391,15 +391,15 @@ def poc_student_management(request, course):
     except ValidationError:
         pass  # XXX: log, report?
 
-    url = reverse('poc_coach_dashboard', kwargs={'course_id': course.id})
+    url = reverse('ccx_coach_dashboard', kwargs={'course_id': course.id})
     return redirect(url)
 
 
 @cache_control(no_cache=True, no_store=True, must_revalidate=True)
 @coach_dashboard
-def poc_gradebook(request, course):
+def ccx_gradebook(request, course):
     """
-    Show the gradebook for this POC.
+    Show the gradebook for this CCX.
     """
     # Need course module for overrides to function properly
     field_data_cache = FieldDataCache.cache_for_descriptor_descendents(
@@ -410,7 +410,7 @@ def poc_gradebook(request, course):
     ccx = get_ccx_for_coach(course, request.user)
     with ccx_context(ccx):
         # The grading policy for the MOOC is probably already cached.  We need
-        # to make sure we have the POC grading policy loaded.
+        # to make sure we have the CCX grading policy loaded.
         course._field_data_cache = {}  # pylint: disable=protected-access
         course.set_grading_policy(course.grading_policy)
 
@@ -442,7 +442,7 @@ def poc_gradebook(request, course):
 
 @cache_control(no_cache=True, no_store=True, must_revalidate=True)
 @coach_dashboard
-def poc_grades_csv(request, course):
+def ccx_grades_csv(request, course):
     """
     Download grades as CSV.
     """
@@ -454,7 +454,7 @@ def poc_grades_csv(request, course):
     ccx = get_ccx_for_coach(course, request.user)
     with ccx_context(ccx):
         # The grading policy for the MOOC is probably already cached.  We need
-        # to make sure we have the POC grading policy loaded.
+        # to make sure we have the CCX grading policy loaded.
         course._field_data_cache = {}  # pylint: disable=protected-access
         course.set_grading_policy(course.grading_policy)
 
@@ -496,8 +496,8 @@ def poc_grades_csv(request, course):
 
 
 @login_required
-def swich_active_poc(request, course_id, ccx_id=None):
-    """set the active POC for the logged-in user
+def switch_active_ccx(request, course_id, ccx_id=None):
+    """set the active CCX for the logged-in user
     """
     user = request.user
     course_key = SlashSeparatedCourseKey.from_deprecated_string(course_id)

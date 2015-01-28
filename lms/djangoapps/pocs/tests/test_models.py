@@ -1,5 +1,5 @@
 from student.models import CourseEnrollment
-from student.roles import CoursePocCoachRole
+from student.roles import CourseCcxCoachRole
 from student.tests.factories import (
     AdminFactory,
     CourseEnrollmentFactory,
@@ -27,7 +27,7 @@ class TestPocMembership(ModuleStoreTestCase):
         """common setup for all tests"""
         self.course = course = CourseFactory.create()
         coach = AdminFactory.create()
-        role = CoursePocCoachRole(course.id)
+        role = CourseCcxCoachRole(course.id)
         role.add_users(coach)
         self.poc = PocFactory(course_id=course.id, coach=coach)
         enrollment = CourseEnrollmentFactory.create(course_id=course.id)
@@ -67,7 +67,7 @@ class TestPocMembership(ModuleStoreTestCase):
         """verify auto_enroll works when user is not enrolled in the MOOC
 
         n.b.  After auto_enroll, user will have both a MOOC enrollment and a
-              POC membership
+              CCX membership
         """
         user = self.unenrolled_user
         pfm = self.create_future_enrollment(user)

@@ -16,7 +16,7 @@ class PersonalOnlineCourse(models.Model):
 
 class PocMembership(models.Model):
     """
-    Which students are in a POC?
+    Which students are in a CCX?
     """
     poc = models.ForeignKey(PersonalOnlineCourse, db_index=True)
     student = models.ForeignKey(User, db_index=True)
@@ -50,7 +50,7 @@ class PocMembership(models.Model):
 
 class PocFutureMembership(models.Model):
     """
-    Which emails for non-users are waiting to be added to POC on registration
+    Which emails for non-users are waiting to be added to CCX on registration
     """
     poc = models.ForeignKey(PersonalOnlineCourse, db_index=True)
     email = models.CharField(max_length=255)

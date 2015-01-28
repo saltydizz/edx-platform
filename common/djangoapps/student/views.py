@@ -662,14 +662,14 @@ def dashboard(request):
                                              if course.pre_requisite_courses)
     courses_requirements_not_met = get_pre_requisite_courses_not_completed(user, courses_having_prerequisites)
 
-    poc_membership_triplets = []
+    ccx_membership_triplets = []
     if settings.FEATURES.get('CUSTOM_COURSES_EDX', False):
         from pocs import ACTIVE_CCX_KEY
         from pocs.utils import get_ccx_membership_triplets
-        poc_membership_triplets = get_ccx_membership_triplets(
+        ccx_membership_triplets = get_ccx_membership_triplets(
             user, course_org_filter, org_filter_out_set
         )
-        # should we deselect any active POC at this time so that we don't have
+        # should we deselect any active CCX at this time so that we don't have
         # to change the URL for viewing a course?  I think so.
         request.session[ACTIVE_CCX_KEY] = None
 
@@ -704,7 +704,7 @@ def dashboard(request):
         'provider_states': [],
         'order_history_list': order_history_list,
         'courses_requirements_not_met': courses_requirements_not_met,
-        'poc_membership_triplets': poc_membership_triplets,
+        'ccx_membership_triplets': ccx_membership_triplets,
     }
 
     if third_party_auth.is_enabled():

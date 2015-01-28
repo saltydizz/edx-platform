@@ -43,7 +43,7 @@ class TestFieldOverrides(ModuleStoreTestCase):
 
         self.poc = poc = PersonalOnlineCourse(
             course_id=course.id,
-            display_name='Test POC',
+            display_name='Test CCX',
             coach=AdminFactory.create())
         poc.save()
 

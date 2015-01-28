@@ -6,7 +6,7 @@ from pocs.models import PocFutureMembership
 
 class PocFactory(DjangoModelFactory):
     FACTORY_FOR = PersonalOnlineCourse
-    display_name = "Test POC"
+    display_name = "Test CCX"
 
 
 class PocMembershipFactory(DjangoModelFactory):

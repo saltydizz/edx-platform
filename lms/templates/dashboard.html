@@ -195,7 +195,7 @@
       % endfor
 
       % if settings.FEATURES.get('CUSTOM_COURSES_EDX', False):
-        % for poc, membership, course in poc_membership_triplets:
+        % for poc, membership, course in ccx_membership_triplets:
             <%include file='pocs/_dashboard_poc_listing.html' args="poc=poc, membership=membership, course=course" />
         % endfor
       % endif

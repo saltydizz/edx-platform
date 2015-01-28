@@ -29,7 +29,7 @@ class CustomCoursesForEdxOverrideProvider(FieldOverrideProvider):
 class _CcxContext(threading.local):
     """
     A threading local used to implement the `with_ccx` context manager, that
-    keeps track of the POC currently set as the context.
+    keeps track of the CCX currently set as the context.
     """
     ccx = None
 
@@ -40,10 +40,10 @@ _CCX_CONTEXT = _CcxContext()
 @contextmanager
 def ccx_context(ccx):
     """
-    A context manager which can be used to explicitly set the POC that is in
+    A context manager which can be used to explicitly set the CCX that is in
     play for field overrides.  This mechanism overrides the standard mechanism
-    of looking in the user's session to see if they are enrolled in a POC and
-    viewing that POC.
+    of looking in the user's session to see if they are enrolled in a CCX and
+    viewing that CCX.
     """
     prev = _CCX_CONTEXT.ccx
     _CCX_CONTEXT.ccx = ccx
@@ -78,7 +78,7 @@ def get_override_for_ccx(ccx, block, name, default=None):
 def _get_overrides_for_ccx(ccx, block):
     """
     Returns a dictionary mapping field name to overriden value for any
-    overrides set on this block for this POC.
+    overrides set on this block for this CCX.
     """
     overrides = {}
     query = PocFieldOverride.objects.filter(
@@ -132,8 +132,8 @@ def clear_override_for_ccx(ccx, block, name):
 
 class CcxMiddleware(object):
     """
-    Checks to see if current session is examining a POC and sets the POC as
-    the current POC for the override machinery if so.
+    Checks to see if current session is examining a CCX and sets the CCX as
+    the current CCX for the override machinery if so.
     """
     def process_request(self, request):
         """

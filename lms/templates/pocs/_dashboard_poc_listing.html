@@ -6,7 +6,7 @@
   from courseware.courses import course_image_url, get_course_about_section
 %>
 <%
-  poc_switch_target = reverse('switch_active_poc', args=[course.id.to_deprecated_string(), poc.id])
+  poc_switch_target = reverse('switch_active_ccx', args=[course.id.to_deprecated_string(), poc.id])
 %>
 <li class="course-item">
   <article class="course">

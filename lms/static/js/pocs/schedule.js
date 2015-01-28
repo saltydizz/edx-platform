@@ -30,7 +30,7 @@ var edx = edx || {};
     edx.pocs.schedule.Schedule = Backbone.Collection.extend({
 
         model: edx.pocs.schedule.UnitModel,
-        url: 'poc_schedule'
+        url: 'ccx_schedule'
 
     });
 

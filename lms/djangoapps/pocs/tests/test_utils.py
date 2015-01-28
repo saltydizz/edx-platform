@@ -7,7 +7,7 @@ from pocs.tests.factories import (
     PocMembershipFactory,
     PocFutureMembershipFactory,
 )
-from student.roles import CoursePocCoachRole
+from student.roles import CourseCcxCoachRole
 from student.tests.factories import (
     AdminFactory,
     UserFactory,
@@ -28,7 +28,7 @@ class TestEmailEnrollmentState(ModuleStoreTestCase):
         """
         course = CourseFactory.create()
         coach = AdminFactory.create()
-        role = CoursePocCoachRole(course.id)
+        role = CourseCcxCoachRole(course.id)
         role.add_users(coach)
         self.poc = PocFactory(course_id=course.id, coach=coach)
 
@@ -123,7 +123,7 @@ class TestGetEmailParams(ModuleStoreTestCase):
         """
         course = CourseFactory.create()
         coach = AdminFactory.create()
-        role = CoursePocCoachRole(course.id)
+        role = CourseCcxCoachRole(course.id)
         role.add_users(coach)
         self.poc = PocFactory(course_id=course.id, coach=coach)
         self.all_keys = [
@@ -172,7 +172,7 @@ class TestEnrollEmail(ModuleStoreTestCase):
     def setUp(self):
         course = CourseFactory.create()
         coach = AdminFactory.create()
-        role = CoursePocCoachRole(course.id)
+        role = CourseCcxCoachRole(course.id)
         role.add_users(coach)
         self.poc = PocFactory(course_id=course.id, coach=coach)
         self.outbox = self.get_outbox()
@@ -346,7 +346,7 @@ class TestUnenrollEmail(ModuleStoreTestCase):
     def setUp(self):
         course = CourseFactory.create()
         coach = AdminFactory.create()
-        role = CoursePocCoachRole(course.id)
+        role = CourseCcxCoachRole(course.id)
         role.add_users(coach)
         self.poc = PocFactory(course_id=course.id, coach=coach)
         self.outbox = self.get_outbox()
@@ -492,7 +492,7 @@ class TestUserPocList(ModuleStoreTestCase):
         """Create required infrastructure for tests"""
         self.course = CourseFactory.create()
         coach = AdminFactory.create()
-        role = CoursePocCoachRole(self.course.id)
+        role = CourseCcxCoachRole(self.course.id)
         role.add_users(coach)
         self.poc = PocFactory(course_id=self.course.id, coach=coach)
         enrollment = CourseEnrollmentFactory.create(course_id=self.course.id)

@@ -1,5 +1,5 @@
 """
-POC Enrollment operations for use by Coach APIs.
+CCX Enrollment operations for use by Coach APIs.
 
 Does not include any access control, be sure to check access before calling.
 """
@@ -230,13 +230,13 @@ def send_mail_to_student(student, param_dict):
 
 
 def get_all_ccxs_for_user(user):
-    """return all POCS to which the user is registered
+    """return all CCXS to which the user is registered
 
     Returns a list of dicts: {
-        ccx_name: <formatted title of POC course>
-        ccx_url: <url to view this POC>
+        ccx_name: <formatted title of CCX course>
+        ccx_url: <url to view this CCX>
         ccx_active: True if this ccx is currently the 'active' one
-        mooc_name: <formatted title of the MOOC course for this POC>
+        mooc_name: <formatted title of the MOOC course for this CCX>
         mooc_url: <url to view this MOOC>
     }
     """
@@ -250,12 +250,12 @@ def get_all_ccxs_for_user(user):
         ccx_title = ccx.display_name
         mooc_title = get_course_about_section(course, 'title')
         url = reverse(
-            'switch_active_poc',
+            'switch_active_ccx',
             args=[course.id.to_deprecated_string(), membership.poc.id]
         )
         mooc_url = reverse(
-            'switch_active_poc',
-            args=[course.id.to_deprecated_string(),]
+            'switch_active_ccx',
+            args=[course.id.to_deprecated_string(), ]
         )
         memberships.append({
             'ccx_name': ccx_title,
