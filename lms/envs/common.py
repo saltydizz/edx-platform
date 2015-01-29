@@ -1136,7 +1136,7 @@ verify_student_js = [
     'js/verify_student/pay_and_verify.js',
 ]
 
-pocs_js = sorted(rooted_glob(PROJECT_ROOT / 'static', 'js/pocs/**/*.js'))
+ccx_js = sorted(rooted_glob(PROJECT_ROOT / 'static', 'js/ccx/**/*.js'))
 
 PIPELINE_CSS = {
     'style-vendor': {
@@ -1323,9 +1323,9 @@ PIPELINE_JS = {
         'source_filenames': verify_student_js,
         'output_filename': 'js/verify_student.js'
     },
-    'pocs': {
-        'source_filenames': pocs_js,
-        'output_filename': 'js/pocs.js'
+    'ccx': {
+        'source_filenames': ccx_js,
+        'output_filename': 'js/ccx.js'
     }
 }
 

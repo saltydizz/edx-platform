@@ -450,5 +450,5 @@ FEATURES['MILESTONES_APP'] = True
 FEATURES['ENTRANCE_EXAMS'] = True
 
 ######### personal online courses #########
-INSTALLED_APPS += ('pocs',)
-MIDDLEWARE_CLASSES += ('pocs.overrides.CcxMiddleware',)
+INSTALLED_APPS += ('ccx',)
+MIDDLEWARE_CLASSES += ('ccx.overrides.CcxMiddleware',)

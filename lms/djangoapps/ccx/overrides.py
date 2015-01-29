@@ -8,9 +8,9 @@ import threading
 from contextlib import contextmanager
 
 from courseware.field_overrides import FieldOverrideProvider
-from pocs import ACTIVE_CCX_KEY
+from ccx import ACTIVE_CCX_KEY
 
-from .models import PocMembership, PocFieldOverride
+from .models import CcxMembership, CcxFieldOverride
 
 
 class CustomCoursesForEdxOverrideProvider(FieldOverrideProvider):
@@ -81,8 +81,8 @@ def _get_overrides_for_ccx(ccx, block):
     overrides set on this block for this CCX.
     """
     overrides = {}
-    query = PocFieldOverride.objects.filter(
-        poc=ccx,
+    query = CcxFieldOverride.objects.filter(
+        ccx=ccx,
         location=block.location
     )
     for override in query:
@@ -98,8 +98,8 @@ def override_field_for_ccx(ccx, block, name, value):
     and the name of the field on that block to override.  `value` is the
     value to set for the given field.
     """
-    override, created = PocFieldOverride.objects.get_or_create(
-        poc=ccx,
+    override, created = CcxFieldOverride.objects.get_or_create(
+        ccx=ccx,
         location=block.location,
         field=name)
     field = block.fields[name]
@@ -118,15 +118,15 @@ def clear_override_for_ccx(ccx, block, name):
     performed.
     """
     try:
-        PocFieldOverride.objects.get(
-            poc=ccx,
+        CcxFieldOverride.objects.get(
+            ccx=ccx,
             location=block.location,
             field=name).delete()
 
         if hasattr(block, '_ccx_overrides'):
             del block._ccx_overrides[ccx.id]
 
-    except PocFieldOverride.DoesNotExist:
+    except CcxFieldOverride.DoesNotExist:
         pass
 
 
@@ -142,11 +142,11 @@ class CcxMiddleware(object):
         ccx_id = request.session.get(ACTIVE_CCX_KEY, None)
         if ccx_id is not None:
             try:
-                membership = PocMembership.objects.get(
-                    student=request.user, active=True, poc__id__exact=ccx_id
+                membership = CcxMembership.objects.get(
+                    student=request.user, active=True, ccx__id__exact=ccx_id
                 )
-                _CCX_CONTEXT.ccx = membership.poc
-            except PocMembership.DoesNotExist:
+                _CCX_CONTEXT.ccx = membership.ccx
+            except CcxMembership.DoesNotExist:
                 # if there is no membership, be sure to unset the active ccx
                 _CCX_CONTEXT.ccx = None
                 request.session.pop(ACTIVE_CCX_KEY)

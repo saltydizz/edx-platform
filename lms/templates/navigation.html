@@ -13,7 +13,7 @@ from status.status import get_site_status_msg
 
 <%! from microsite_configuration import microsite %>
 <%! from microsite_configuration.templatetags.microsite import platform_name %>
-<%! from pocs.overrides import get_current_ccx %>
+<%! from ccx.overrides import get_current_ccx %>
 
 ## Provide a hook for themes to inject branding on top.
 <%block name="navigation_top" />
@@ -53,9 +53,9 @@ site_status_msg = get_site_status_msg(course_id)
       <%
         display_name = course.display_name_with_default
         if settings.FEATURES.get('CUSTOM_COURSES_EDX', False):
-          poc = get_current_ccx()
-          if poc:
-            display_name = poc.display_name
+          ccx = get_current_ccx()
+          if ccx:
+            display_name = ccx.display_name
       %>
       ${display_name}</h2>
     % endif

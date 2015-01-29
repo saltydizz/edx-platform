@@ -16,8 +16,8 @@ from xmodule.modulestore.django import modulestore
 from xmodule.error_module import ErrorDescriptor
 
 from .models import (
-    PocMembership,
-    PocFutureMembership,
+    CcxMembership,
+    CcxFutureMembership,
 )
 from .overrides import get_current_ccx
 
@@ -31,7 +31,7 @@ class EmailEnrollmentState(object):
         exists_user = User.objects.filter(email=email).exists()
         if exists_user:
             user = User.objects.get(email=email)
-            ccx_member = PocMembership.objects.filter(poc=ccx, student=user)
+            ccx_member = CcxMembership.objects.filter(ccx=ccx, student=user)
             in_ccx = ccx_member.exists()
             full_name = user.profile.name
         else:
@@ -67,13 +67,13 @@ def enroll_email(ccx, student_email, auto_enroll=False, email_students=False, em
     if previous_state.user:
         if not previous_state.in_ccx:
             user = User.objects.get(email=student_email)
-            membership = PocMembership(
-                poc=ccx, student=user, active=True
+            membership = CcxMembership(
+                ccx=ccx, student=user, active=True
             )
             membership.save()
         elif auto_enroll:
             # activate existing memberships
-            membership = PocMembership.objects.get(student=user, poc=ccx)
+            membership = CcxMembership.objects.get(student=user, ccx=ccx)
             membership.active = True
             membership.save()
         if email_students:
@@ -82,8 +82,8 @@ def enroll_email(ccx, student_email, auto_enroll=False, email_students=False, em
             email_params['full_name'] = previous_state.full_name
             send_mail_to_student(student_email, email_params)
     else:
-        membership = PocFutureMembership(
-            poc=ccx, auto_enroll=auto_enroll, email=student_email
+        membership = CcxFutureMembership(
+            ccx=ccx, auto_enroll=auto_enroll, email=student_email
         )
         membership.save()
         if email_students:
@@ -102,8 +102,8 @@ def unenroll_email(ccx, student_email, email_students=False, email_params=None):
     previous_state = EmailEnrollmentState(ccx, student_email)
 
     if previous_state.in_ccx:
-        PocMembership.objects.get(
-            poc=ccx, student=previous_state.member
+        CcxMembership.objects.get(
+            ccx=ccx, student=previous_state.member
         ).delete()
         if email_students:
             email_params['message'] = 'enrolled_unenroll'
@@ -111,11 +111,11 @@ def unenroll_email(ccx, student_email, email_students=False, email_params=None):
             email_params['full_name'] = previous_state.full_name
             send_mail_to_student(student_email, email_params)
     else:
-        if PocFutureMembership.objects.filter(
-            poc=ccx, email=student_email
+        if CcxFutureMembership.objects.filter(
+            ccx=ccx, email=student_email
         ).exists():
-            PocFutureMembership.objects.get(
-                poc=ccx, email=student_email
+            CcxFutureMembership.objects.get(
+                ccx=ccx, email=student_email
             ).delete()
         if email_students:
             email_params['message'] = 'allowed_unenroll'
@@ -187,20 +187,20 @@ def send_mail_to_student(student, param_dict):
 
     email_template_dict = {
         'allowed_enroll': (
-            'pocs/enroll_email_allowedsubject.txt',
-            'pocs/enroll_email_allowedmessage.txt'
+            'ccx/enroll_email_allowedsubject.txt',
+            'ccx/enroll_email_allowedmessage.txt'
         ),
         'enrolled_enroll': (
-            'pocs/enroll_email_enrolledsubject.txt',
-            'pocs/enroll_email_enrolledmessage.txt'
+            'ccx/enroll_email_enrolledsubject.txt',
+            'ccx/enroll_email_enrolledmessage.txt'
         ),
         'allowed_unenroll': (
-            'pocs/unenroll_email_subject.txt',
-            'pocs/unenroll_email_allowedmessage.txt'
+            'ccx/unenroll_email_subject.txt',
+            'ccx/unenroll_email_allowedmessage.txt'
         ),
         'enrolled_unenroll': (
-            'pocs/unenroll_email_subject.txt',
-            'pocs/unenroll_email_enrolledmessage.txt'
+            'ccx/unenroll_email_subject.txt',
+            'ccx/unenroll_email_enrolledmessage.txt'
         ),
     }
 
@@ -229,7 +229,7 @@ def send_mail_to_student(student, param_dict):
         )
 
 
-def get_all_ccxs_for_user(user):
+def get_all_ccx_for_user(user):
     """return all CCXS to which the user is registered
 
     Returns a list of dicts: {
@@ -244,14 +244,14 @@ def get_all_ccxs_for_user(user):
         return []
     current_active_ccx = get_current_ccx()
     memberships = []
-    for membership in PocMembership.memberships_for_user(user):
-        course = get_course_by_id(membership.poc.course_id)
-        ccx = membership.poc
+    for membership in CcxMembership.memberships_for_user(user):
+        course = get_course_by_id(membership.ccx.course_id)
+        ccx = membership.ccx
         ccx_title = ccx.display_name
         mooc_title = get_course_about_section(course, 'title')
         url = reverse(
             'switch_active_ccx',
-            args=[course.id.to_deprecated_string(), membership.poc.id]
+            args=[course.id.to_deprecated_string(), membership.ccx.id]
         )
         mooc_url = reverse(
             'switch_active_ccx',
@@ -260,7 +260,7 @@ def get_all_ccxs_for_user(user):
         memberships.append({
             'ccx_name': ccx_title,
             'ccx_url': url,
-            'active': membership.poc == current_active_ccx,
+            'active': membership.ccx == current_active_ccx,
             'mooc_name': mooc_title,
             'mooc_url': mooc_url,
         })
@@ -268,12 +268,12 @@ def get_all_ccxs_for_user(user):
 
 def get_ccx_membership_triplets(user, course_org_filter, org_filter_out_set):
     """
-    Get the relevant set of (PersonalOnlineCourse, PocMembership, Course)
+    Get the relevant set of (CustomCourseForEdX, CcxMembership, Course)
     triplets to be displayed on a student's dashboard.
     """
     # only active memberships for now
-    for membership in PocMembership.memberships_for_user(user):
-        ccx = membership.poc
+    for membership in CcxMembership.memberships_for_user(user):
+        ccx = membership.ccx
         store = modulestore()
         with store.bulk_operations(ccx.course_id):
             course = store.get_course(ccx.course_id)

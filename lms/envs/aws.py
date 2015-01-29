@@ -499,10 +499,10 @@ PDF_RECEIPT_COBRAND_LOGO_HEIGHT_MM = ENV_TOKENS.get(
 
 ##### Custom Courses for EdX #####
 if FEATURES.get('CUSTOM_COURSES_EDX'):
-    INSTALLED_APPS += ('pocs',)
-    MIDDLEWARE_CLASSES += ('pocs.overrides.CcxMiddleware',)
+    INSTALLED_APPS += ('ccx',)
+    MIDDLEWARE_CLASSES += ('ccx.overrides.CcxMiddleware',)
     FIELD_OVERRIDE_PROVIDERS += (
-        'pocs.overrides.CustomCoursesForEdxOverrideProvider',
+        'ccx.overrides.CustomCoursesForEdxOverrideProvider',
     )
 
 ##### Individual Due Date Extensions #####

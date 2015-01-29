@@ -664,8 +664,8 @@ def dashboard(request):
 
     ccx_membership_triplets = []
     if settings.FEATURES.get('CUSTOM_COURSES_EDX', False):
-        from pocs import ACTIVE_CCX_KEY
-        from pocs.utils import get_ccx_membership_triplets
+        from ccx import ACTIVE_CCX_KEY
+        from ccx.utils import get_ccx_membership_triplets
         ccx_membership_triplets = get_ccx_membership_triplets(
             user, course_org_filter, org_filter_out_set
         )
@@ -1870,13 +1870,13 @@ def activate_account(request, key):
 
             # enroll student in any pending CCXs he/she may have if auto_enroll flag is set
             if settings.FEATURES.get('CUSTOM_COURSES_EDX'):
-                from pocs.models import PocMembership, PocFutureMembership
-                pfms = PocFutureMembership.objects.filter(
+                from ccx.models import CcxMembership, CcxFutureMembership
+                pfms = CcxFutureMembership.objects.filter(
                     email=student[0].email
                 )
                 for pfm in pfms:
                     if pfm.auto_enroll:
-                        PocMembership.auto_enroll(student[0], pfm)
+                        CcxMembership.auto_enroll(student[0], pfm)
 
         resp = render_to_response(
             "registration/activation_complete.html",

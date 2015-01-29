@@ -39,7 +39,7 @@ from instructor.offline_gradecalc import student_grades
 from instructor.views.api import _split_input_list
 from instructor.views.tools import get_student_from_identifier
 
-from .models import PersonalOnlineCourse, PocMembership
+from .models import CustomCourseForEdX, CcxMembership
 from .overrides import (
     clear_override_for_ccx,
     get_override_for_ccx,
@@ -50,7 +50,7 @@ from .utils import (
     enroll_email,
     unenroll_email,
 )
-from pocs import ACTIVE_CCX_KEY
+from ccx import ACTIVE_CCX_KEY
 
 
 log = logging.getLogger(__name__)
@@ -89,7 +89,7 @@ def dashboard(request, course):
     ccx = get_ccx_for_coach(course, request.user)
     context = {
         'course': course,
-        'poc': ccx,
+        'ccx': ccx,
     }
 
     if ccx:
@@ -99,7 +99,7 @@ def dashboard(request, course):
         context['schedule'] = json.dumps(schedule, indent=4)
         context['save_url'] = reverse(
             'save_ccx', kwargs={'course_id': course.id})
-        context['ccx_members'] = PocMembership.objects.filter(poc=ccx)
+        context['ccx_members'] = CcxMembership.objects.filter(ccx=ccx)
         context['gradebook_url'] = reverse(
             'ccx_gradebook', kwargs={'course_id': course.id})
         context['grades_csv_url'] = reverse(
@@ -110,7 +110,7 @@ def dashboard(request, course):
     else:
         context['create_ccx_url'] = reverse(
             'create_ccx', kwargs={'course_id': course.id})
-    return render_to_response('pocs/coach_dashboard.html', context)
+    return render_to_response('ccx/coach_dashboard.html', context)
 
 
 @ensure_csrf_cookie
@@ -121,7 +121,7 @@ def create_ccx(request, course):
     Create a new CCX
     """
     name = request.POST.get('name')
-    ccx = PersonalOnlineCourse(
+    ccx = CustomCourseForEdX(
         course_id=course.id,
         coach=request.user,
         display_name=name)
@@ -269,10 +269,10 @@ def get_ccx_for_coach(course, coach):
     None.
     """
     try:
-        return PersonalOnlineCourse.objects.get(
+        return CustomCourseForEdX.objects.get(
             course_id=course.id,
             coach=coach)
-    except PersonalOnlineCourse.DoesNotExist:
+    except CustomCourseForEdX.DoesNotExist:
         return None
 
 
@@ -415,8 +415,8 @@ def ccx_gradebook(request, course):
         course.set_grading_policy(course.grading_policy)
 
         enrolled_students = User.objects.filter(
-            pocmembership__poc=ccx,
-            pocmembership__active=1
+            ccxmembership__ccx=ccx,
+            ccxmembership__active=1
         ).order_by('username').select_related("profile")
 
         student_info = [
@@ -459,8 +459,8 @@ def ccx_grades_csv(request, course):
         course.set_grading_policy(course.grading_policy)
 
         enrolled_students = User.objects.filter(
-            pocmembership__poc=ccx,
-            pocmembership__active=1
+            ccxmembership__ccx=ccx,
+            ccxmembership__active=1
         ).order_by('username').select_related("profile")
         grades = iterate_grades_for(course, enrolled_students)
 
@@ -508,13 +508,13 @@ def switch_active_ccx(request, course_id, ccx_id=None):
     )
     if ccx_id is not None:
         try:
-            requested_ccx = PersonalOnlineCourse.objects.get(pk=ccx_id)
+            requested_ccx = CustomCourseForEdX.objects.get(pk=ccx_id)
             assert requested_ccx.course_id.to_deprecated_string() == course_id
-            if not PocMembership.objects.filter(
-                poc=requested_ccx, student=request.user, active=True
+            if not CcxMembership.objects.filter(
+                ccx=requested_ccx, student=request.user, active=True
             ).exists():
                 ccx_id = None
-        except PersonalOnlineCourse.DoesNotExist:
+        except CustomCourseForEdX.DoesNotExist:
             # what to do here?  Log the failure?  Do we care?
             ccx_id = None
         except AssertionError:

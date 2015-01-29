@@ -383,7 +383,7 @@ class DiscussionTab(EnrolledOrStaffTab):
 
     def can_display(self, course, settings, is_user_authenticated, is_user_staff, is_user_enrolled):
         if settings.FEATURES.get('CUSTOM_COURSES_EDX', False):
-            from pocs.overrides import get_current_ccx
+            from ccx.overrides import get_current_ccx
             if get_current_ccx():
                 return False
         super_can_display = super(DiscussionTab, self).can_display(
