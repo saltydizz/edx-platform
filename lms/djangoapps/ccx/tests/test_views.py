@@ -466,6 +466,12 @@ class TestCCXGrades(ModuleStoreTestCase, LoginEnrollmentTestCase):
             block._field_data_cache = {}
             visible_children(block)
 
+        # and after everything is done, clean up by un-doing the change to the
+        # OverrideFieldData object that is done during the wrap method.
+        def cleanup_provider_classes():
+            OverrideFieldData.provider_classes = None
+        self.addCleanup(cleanup_provider_classes)
+
         patch_context = patch('ccx.views.get_course_by_id')
         get_course = patch_context.start()
         get_course.return_value = course

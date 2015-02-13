@@ -60,6 +60,12 @@ class TestFieldOverrides(ModuleStoreTestCase):
             block._field_data = OverrideFieldData.wrap(  # pylint: disable=protected-access
                 AdminFactory.create(), block._field_data)  # pylint: disable=protected-access
 
+        # and after everything is done, clean up by un-doing the change to the
+        # OverrideFieldData object that is done during the wrap method.
+        def cleanup_provider_classes():
+            OverrideFieldData.provider_classes = None
+        self.addCleanup(cleanup_provider_classes)
+
     def test_override_start(self):
         """
         Test that overriding start date on a chapter works.
