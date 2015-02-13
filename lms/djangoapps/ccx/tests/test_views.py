@@ -54,7 +54,7 @@ def intercept_renderer(path, context):
 
 class TestCoachDashboard(ModuleStoreTestCase, LoginEnrollmentTestCase):
     """
-    Tests for Personal Online Courses views.
+    Tests for Custom Courses views.
     """
     def setUp(self):
         """
@@ -407,7 +407,7 @@ class TestCoachDashboard(ModuleStoreTestCase, LoginEnrollmentTestCase):
     'ccx.overrides.CustomCoursesForEdxOverrideProvider',))
 class TestCCXGrades(ModuleStoreTestCase, LoginEnrollmentTestCase):
     """
-    Tests for Personal Online Courses views.
+    Tests for Custom Courses views.
     """
     def setUp(self):
         """

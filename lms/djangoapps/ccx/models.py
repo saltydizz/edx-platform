@@ -7,7 +7,7 @@ from xmodule_django.models import CourseKeyField, LocationKeyField
 
 class CustomCourseForEdX(models.Model):
     """
-    A Personal Online Course.
+    A Custom Course.
     """
     course_id = CourseKeyField(max_length=255, db_index=True)
     display_name = models.CharField(max_length=255)

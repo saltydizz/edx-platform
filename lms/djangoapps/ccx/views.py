@@ -1,5 +1,5 @@
 """
-Views related to the Personal Online Courses feature.
+Views related to the Custom Courses feature.
 """
 import csv
 import datetime
