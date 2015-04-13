@@ -115,6 +115,9 @@ urlpatterns += patterns(
         settings.COURSE_KEY_PATTERN), 'group_configurations_detail_handler'),
 
     url(r'^api/val/v0/', include('edxval.urls')),
+
+    # Import/Export API
+    url(r'^api/v1/', include('openedx.core.djangoapps.import_export.urls')),
 )
 
 JS_INFO_DICT = {
@@ -156,6 +159,12 @@ if settings.FEATURES.get('AUTH_USE_CAS'):
     urlpatterns += (
         url(r'^cas-auth/login/$', 'external_auth.views.cas_login', name="cas-login"),
         url(r'^cas-auth/logout/$', 'django_cas.views.logout', {'next_page': '/'}, name="cas-logout"),
+    )
+
+
+if settings.FEATURES.get('ENABLE_OAUTH2_PROVIDER'):
+    urlpatterns += (
+        url(r'^oauth2/', include('oauth2_provider.urls', namespace='oauth2')),
     )
 
 urlpatterns += patterns('', url(r'^admin/', include(admin.site.urls)),)
