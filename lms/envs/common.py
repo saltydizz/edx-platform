@@ -398,6 +398,7 @@ PROJECT_ROOT = path(__file__).abspath().dirname().dirname()  # /edx-platform/lms
 REPO_ROOT = PROJECT_ROOT.dirname()
 COMMON_ROOT = REPO_ROOT / "common"
 ENV_ROOT = REPO_ROOT.dirname()  # virtualenv dir /edx-platform is in
+GITHUB_REPO_ROOT = ENV_ROOT / "data"
 COURSES_ROOT = ENV_ROOT / "data"
 
 DATA_DIR = COURSES_ROOT
@@ -432,6 +433,7 @@ OPENID_PROVIDER_TRUSTED_ROOTS = ['cs50.net', '*.cs50.net']
 
 # OpenID Connect issuer ID. Normally the URL of the authentication endpoint.
 
+OAUTH_OIDC_ISSUER_PATH = 'oauth2'
 OAUTH_OIDC_ISSUER = 'https:/example.com/oauth2'
 
 # OpenID Connect claim handlers
@@ -1703,6 +1705,9 @@ INSTALLED_APPS = (
     'cors_csrf',
 
     'commerce',
+
+    # Import/Export API
+    'openedx.core.djangoapps.import_export',
 )
 
 ######################### CSRF #########################################

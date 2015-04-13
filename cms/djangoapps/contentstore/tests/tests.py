@@ -339,11 +339,11 @@ class CourseKeyVerificationTestCase(CourseTestCase):
         """
         Tests for the ensure_valid_course_key decorator.
         """
-        url = '/import/{course_key}'.format(course_key=course_key)
+        url = '/export/{course_key}'.format(course_key=course_key)
         resp = self.client.get_html(url)
         self.assertEqual(resp.status_code, status_code)
 
-        url = '/import_status/{course_key}/{filename}'.format(
+        url = '/api/v1/courses/{course_key}/import_status/{filename}'.format(
             course_key=course_key,
             filename='xyz.tar.gz'
         )

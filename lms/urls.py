@@ -86,6 +86,9 @@ urlpatterns = (
 
     # Course content API
     url(r'^api/course_structure/', include('course_structure_api.urls', namespace='course_structure_api')),
+
+    # Import/Export API
+    url(r'^api/import_export/v1/', include('openedx.core.djangoapps.import_export.urls')),
 )
 
 if settings.FEATURES["ENABLE_USER_REST_API"]:
