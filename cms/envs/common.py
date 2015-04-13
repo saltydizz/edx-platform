@@ -1,3 +1,4 @@
+
 # -*- coding: utf-8 -*-
 """
 This is the common settings file, intended to set sane defaults. If you have a
@@ -66,6 +67,9 @@ FEATURES = {
     'ENABLE_STUDENT_NOTES': True,
 
     'AUTH_USE_CERTIFICATES': False,
+
+    # Toggles OAuth2 authentication provider
+    'ENABLE_OAUTH2_PROVIDER': False,
 
     # email address for studio staff (eg to request course creation)
     'STUDIO_REQUEST_EMAIL': '',
@@ -177,6 +181,29 @@ sys.path.append(COMMON_ROOT / 'djangoapps')
 # For geolocation ip database
 GEOIP_PATH = REPO_ROOT / "common/static/data/geoip/GeoIP.dat"
 GEOIPV6_PATH = REPO_ROOT / "common/static/data/geoip/GeoIPv6.dat"
+
+############################ OAUTH2 Provider ###################################
+
+# OpenID Connect issuer ID. Normally the URL of the authentication endpoint.
+
+OAUTH_OIDC_ISSUER_PATH = 'oauth2'
+OAUTH_OIDC_ISSUER = 'https:/example.com/oauth2'
+
+# OpenID Connect claim handlers
+
+OAUTH_OIDC_ID_TOKEN_HANDLERS = (
+    'oauth2_provider.oidc.handlers.BasicIDTokenHandler',
+    'oauth2_provider.oidc.handlers.ProfileHandler',
+    'oauth2_provider.oidc.handlers.EmailHandler',
+    'oauth2_handler.IDTokenHandler'
+)
+
+OAUTH_OIDC_USERINFO_HANDLERS = (
+    'oauth2_provider.oidc.handlers.BasicUserInfoHandler',
+    'oauth2_provider.oidc.handlers.ProfileHandler',
+    'oauth2_provider.oidc.handlers.EmailHandler',
+    'oauth2_handler.UserInfoHandler'
+)
 
 ############################# WEB CONFIGURATION #############################
 # This is where we stick our compiled template files.
@@ -713,6 +740,11 @@ INSTALLED_APPS = (
     'static_replace',
     'require',
 
+    # OAuth2 Provider
+    'provider',
+    'provider.oauth2',
+    'oauth2_provider',
+
     # comment common
     'django_comment_common',
 
@@ -744,6 +776,10 @@ INSTALLED_APPS = (
     'edx_jsme',    # Molecular Structure
 
     'openedx.core.djangoapps.content.course_structures',
+
+    # Import/Export API
+    'rest_framework',
+    'openedx.core.djangoapps.import_export',
 )
 
 
