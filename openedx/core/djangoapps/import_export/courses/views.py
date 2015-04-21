@@ -2,6 +2,7 @@
 These views handle all actions in Studio related to import and exporting of
 courses
 """
+import base64
 import logging
 from opaque_keys import InvalidKeyError
 import os
@@ -33,8 +34,10 @@ from xmodule.contentstore.django import contentstore
 from xmodule.exceptions import SerializationError
 from xmodule.modulestore.django import modulestore
 from opaque_keys.edx.keys import CourseKey
-from xmodule.modulestore.xml_importer import import_course_from_xml
-from xmodule.modulestore.xml_exporter import export_course_to_xml
+from opaque_keys.edx.locator import LibraryLocator
+from xmodule.modulestore.xml_importer import import_course_from_xml, import_library_from_xml
+from xmodule.modulestore.xml_exporter import export_course_to_xml, export_library_to_xml
+from xmodule.modulestore import COURSE_ROOT, LIBRARY_ROOT
 
 from student.auth import has_course_author_access
 
@@ -125,7 +128,7 @@ class FullCourseImportExport(APIView):
         """
         Save import status for a course in request session
         """
-        session_status = request.session.get('import_status')
+        session_status = request.session.get("import_status")
         if session_status is None:
             session_status = request.session.setdefault("import_status", {})
 
@@ -146,7 +149,7 @@ class FullCourseImportExport(APIView):
     @renderer_classes_decorator((ArchiveRenderer,))
     def get(self, request, course_key_string):
         """
-        The restful handler for exporting a full course.
+        The restful handler for exporting a full course or content library.
 
         GET
             application/x-tgz: return tar.gz file containing exported course
@@ -161,8 +164,8 @@ class FullCourseImportExport(APIView):
         """
         redirect_url = request.QUERY_PARAMS.get('redirect', None)
 
-        course_key = CourseKey.from_string(course_key_string)
-        course_module = modulestore().get_course(course_key)
+        courselike_key = CourseKey.from_string(course_key_string)
+        course_module = modulestore().get_course(courselike_key)
 
         name = course_module.url_name
         export_file = NamedTemporaryFile(prefix=name + '.', suffix=".tar.gz")
@@ -258,15 +261,15 @@ class FullCourseImportExport(APIView):
         POST or PUT
             json: import a course via the .tar.gz file specified inrequest.FILES
         """
-        course_key = CourseKey.from_string(course_key_string)
+        courselike_key = CourseKey.from_string(course_key_string)
 
         filename = request.FILES['course-data'].name
-        key = unicode(course_key) + filename
+        key = unicode(courselike_key) + filename
         data_root = path(settings.GITHUB_REPO_ROOT)
         course_subdir = "{0}-{1}-{2}".format(
-            course_key.org,
-            course_key.course,
-            course_key.run
+            courselike_key.org,
+            courselike_key.course,
+            courselike_key.run
         )
         course_dir = data_root / course_subdir
 
@@ -358,7 +361,7 @@ class FullCourseImportExport(APIView):
             if course_dir.isdir():
                 shutil.rmtree(course_dir)
                 log.info(
-                    "Course import {0}: Temp data cleared".format(course_key)
+                    "Course import {0}: Temp data cleared".format(courselike_key)
                 )
 
             log.exception(
@@ -375,7 +378,7 @@ class FullCourseImportExport(APIView):
         # try-finally block for proper clean up after receiving last chunk.
         try:
             # This was the last chunk.
-            log.info("Course import {0}: Upload complete".format(course_key))
+            log.info("Course import {0}: Upload complete".format(courselike_key))
             self._save_request_status(request, key, 1)
 
             tar_file = tarfile.open(temp_filepath)
@@ -397,7 +400,7 @@ class FullCourseImportExport(APIView):
                 tar_file.close()
 
             log.info(
-                "Course import {0}: Uploaded file extracted".format(course_key)
+                "Course import {0}: Uploaded file extracted".format(courselike_key)
             )
             self._save_request_status(request, key, 2)
 
@@ -441,7 +444,7 @@ class FullCourseImportExport(APIView):
             logging.debug('found course.xml at {0}'.format(dirpath))
 
             log.info(
-                "Course import {0}: Extracted file verified".format(course_key)
+                "Course import {0}: Extracted file verified".format(courselike_key)
             )
             self._save_request_status(request, key, 3)
 
@@ -452,14 +455,14 @@ class FullCourseImportExport(APIView):
                 [dirpath],
                 load_error_modules=False,
                 static_content_store=contentstore(),
-                target_id=course_key,
+                target_id=courselike_key,
             )
 
             new_location = course_items[0].location
             logging.debug('new course at {0}'.format(new_location))
 
             log.info(
-                "Course import {0}: Course import successful".format(course_key)
+                "Course import {0}: Course import successful".format(courselike_key)
             )
             self._save_request_status(request, key, 4)
 
@@ -480,7 +483,7 @@ class FullCourseImportExport(APIView):
             if course_dir.isdir():
                 shutil.rmtree(course_dir)
                 log.info(
-                    "Course import {0}: Temp data cleared".format(course_key)
+                    "Course import {0}: Temp data cleared".format(courselike_key)
                 )
             # set failed stage number with negative sign in case of an
             # unsuccessful import
