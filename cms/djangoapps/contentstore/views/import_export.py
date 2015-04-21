@@ -6,7 +6,7 @@ import logging
 from opaque_keys import InvalidKeyError
 import re
 
-from contentstore.utils import reverse_course_url, reverse_usage_url
+from contentstore.utils import reverse_course_url, reverse_library_url, reverse_usage_url
 
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
@@ -16,6 +16,7 @@ from django.views.decorators.http import require_http_methods
 from django_future.csrf import ensure_csrf_cookie
 from edxmako.shortcuts import render_to_response
 from opaque_keys.edx.keys import CourseKey
+from opaque_keys.edx.locator import LibraryLocator
 
 from student.auth import has_course_author_access
 from util.views import ensure_valid_course_key
@@ -48,30 +49,35 @@ def import_handler(request, course_key_string):
     GET
         html: return html page for import page
     """
-    course_key = CourseKey.from_string(course_key_string)
-    if not has_course_author_access(request.user, course_key):
+    courselike_key = CourseKey.from_string(course_key_string)
+    library = isinstance(courselike_key, LibraryLocator)
+    if library:
+        successful_url = reverse_library_url('library_handler', courselike_key)
+        courselike_module = modulestore().get_library(courselike_key)
+    else:
+        successful_url = reverse_course_url('course_handler', courselike_key)
+        courselike_module = modulestore().get_course(courselike_key)
+
+    if not has_course_author_access(request.user, courselike_key):
         raise PermissionDenied()
 
-    course_module = modulestore().get_course(course_key)
     return render_to_response('import.html', {
-        'context_course': course_module,
-        'successful_import_redirect_url': reverse_course_url(
-            'course_handler',
-            course_key
-        ),
+        'context_course': courselike_module,
+        'successful_import_redirect_url': successful_url,
         'import_status_url': reverse(
             "course_import_status_handler",
             kwargs={
-                "course_key_string": unicode(course_key),
+                "course_key_string": unicode(courselike_key),
                 "filename": "fillerName"
             }
         ),
         'import_url': reverse(
             "course_import_export_handler",
             kwargs={
-                "course_key_string": unicode(course_key),
+                "course_key_string": unicode(courselike_key),
             }
-        )
+        ),
+        'library': library
     })
 
 
@@ -99,16 +105,23 @@ def export_handler(request, course_key_string):
         except InvalidKeyError:
             parent = None
 
-    course_key = CourseKey.from_string(course_key_string)
-    if not has_course_author_access(request.user, course_key):
-        raise PermissionDenied()
+    courselike_key = CourseKey.from_string(course_key_string)
+    library = isinstance(courselike_key, LibraryLocator)
+    if library:
+        successful_url = reverse_library_url('library_handler', courselike_key)
+        courselike_module = modulestore().get_library(courselike_key)
+    else:
+        successful_url = reverse_course_url('course_handler', courselike_key)
+        courselike_module = modulestore().get_course(courselike_key)
 
-    course_module = modulestore().get_course(course_key)
+
+    if not has_course_author_access(request.user, courselike_key):
+        raise PermissionDenied()
 
     export_url = reverse(
         "course_import_export_handler",
         kwargs={
-            "course_key_string": unicode(course_key),
+            "course_key_string": unicode(courselike_key),
         }
     ) + '?accept=application/x-tgz'
 
@@ -116,14 +129,14 @@ def export_handler(request, course_key_string):
         urlencode({
             "redirect": reverse_course_url(
                 'export_handler',
-                unicode(course_key)
+                unicode(courselike_key)
             )
         })
     )
 
     if error:
         return render_to_response('export.html', {
-            "context_course": course_module,
+            "context_course": courselike_module,
             "export_url": export_url,
             "in_err": error,
             "unit": unit,
@@ -131,11 +144,11 @@ def export_handler(request, course_key_string):
             "edit_unit_url":
                 reverse_usage_url("container_handler", parent.location)
                 if parent else "",
-            "course_home_url": reverse_course_url("course_handler", course_key),
+            "course_home_url": successful_url,
             "raw_err_msg": error_message
         })
     else:
         return render_to_response('export.html', {
-            "context_course": course_module,
+            "context_course": courselike_module,
             "export_url": export_url
         })
