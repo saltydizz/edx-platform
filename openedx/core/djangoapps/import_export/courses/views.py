@@ -165,20 +165,34 @@ class FullCourseImportExport(APIView):
         redirect_url = request.QUERY_PARAMS.get('redirect', None)
 
         courselike_key = CourseKey.from_string(course_key_string)
-        course_module = modulestore().get_course(courselike_key)
+        library = isinstance(courselike_key, LibraryLocator)
 
-        name = course_module.url_name
+        if library:
+            courselike_module = modulestore().get_library(courselike_key)
+        else:
+            courselike_module = modulestore().get_course(courselike_key)
+
+        name = courselike_module.url_name
         export_file = NamedTemporaryFile(prefix=name + '.', suffix=".tar.gz")
         root_dir = path(mkdtemp())
 
         try:
-            export_course_to_xml(
-                modulestore(),
-                contentstore(),
-                course_module.id,
-                root_dir,
-                name
-            )
+            if library:
+                export_library_to_xml(
+                    modulestore(),
+                    contentstore(),
+                    courselike_key,
+                    root_dir,
+                    name
+                )
+            else:
+                export_course_to_xml(
+                    modulestore(),
+                    contentstore(),
+                    courselike_module.id,
+                    root_dir,
+                    name
+                )
 
             logging.debug(
                 u'tar file being generated at {0}'.format(export_file.name)
@@ -188,7 +202,7 @@ class FullCourseImportExport(APIView):
         except SerializationError as exc:
             log.exception(
                 u'There was an error exporting course %s',
-                course_module.id
+                courselike_key
             )
             unit = None
             failed_item = None
@@ -210,7 +224,7 @@ class FullCourseImportExport(APIView):
 
             return self._export_error_response(
                 {
-                    "context_course": str(course_module.location),
+                    "context_course": str(courselike_module.location),
                     "error": True,
                     "error_message": str(exc),
                     "failed_module":
@@ -223,11 +237,11 @@ class FullCourseImportExport(APIView):
         except Exception as exc:
             log.exception(
                 'There was an error exporting course %s',
-                course_module.id
+                courselike_key
             )
             return self._export_error_response(
                 {
-                    "context_course": course_module.url_name,
+                    "context_course": courselike_module.url_name,
                     "error": True,
                     "error_message": str(exc),
                     "unit": None
