@@ -564,7 +564,7 @@ COURSE_KEY_REGEX = COURSE_KEY_PATTERN.replace('P<course_key_string>', ':')
 
 # Pattern to match a course key or a library key
 COURSELIKE_KEY_PATTERN = r'(?P<course_key_string>({}|{}))'.format(
-    r'[^/]+/[^/]+/[^/]+',
+    r'[^/:+]+/[^/:+]+/[^/:+]+',
     r'[^/:]+:[^/+]+\+[^/+]+(\+[^/]+)?',
 )
 
