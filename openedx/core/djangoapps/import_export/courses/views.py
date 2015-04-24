@@ -276,25 +276,33 @@ class FullCourseImportExport(APIView):
             json: import a course via the .tar.gz file specified inrequest.FILES
         """
         courselike_key = CourseKey.from_string(course_key_string)
+        library = isinstance(courselike_key, LibraryLocator)
+
+        if library:
+            root_name = LIBRARY_ROOT
+            context_name = "context_library"
+            courselike_module = modulestore().get_library(courselike_key)
+            import_func = import_library_from_xml
+        else:
+            root_name = COURSE_ROOT
+            context_name = "context_course"
+            courselike_module = modulestore().get_course(courselike_key)
+            import_func = import_course_from_xml
 
         filename = request.FILES['course-data'].name
-        key = unicode(courselike_key) + filename
+        courselike_string = unicode(courselike_key) + filename
         data_root = path(settings.GITHUB_REPO_ROOT)
-        course_subdir = "{0}-{1}-{2}".format(
-            courselike_key.org,
-            courselike_key.course,
-            courselike_key.run
-        )
-        course_dir = data_root / course_subdir
+        subdir = base64.urlsafe_b64encode(repr(courselike_key))
+        course_dir = data_root / subdir
 
         # Do everything in a try-except block to make sure everything is
         # properly cleaned up.
         try:
             # Use sessions to keep info about import progress
             session_status = request.session.setdefault("import_status", {})
-            self._save_request_status(request, key, 0)
+            self._save_request_status(request, courselike_string, 0)
             if not filename.endswith('.tar.gz'):
-                self._save_request_status(request, key, -1)
+                self._save_request_status(request, courselike_string, -1)
                 return JsonResponse(
                     {
                         'error_message': _(
@@ -330,7 +338,7 @@ class FullCourseImportExport(APIView):
                 # handling the same session, but it's always better to catch
                 # errors earlier.
                 if size < int(content_range['start']):
-                    self._save_request_status(request, key, -1)
+                    self._save_request_status(request, courselike_string, -1)
                     log.warning(
                         "Reported range %s does not match size downloaded so "
                         "far %s",
@@ -370,17 +378,15 @@ class FullCourseImportExport(APIView):
                     }]
                 })
         # Send errors to client with stage at which error occurred.
-        except Exception as exception:   # pylint: disable=W0703
-            self._save_request_status(request, key, -1)
+        except Exception as exception:  # pylint: disable=W0703
+            self._save_request_status(request, courselike_string, -1)
             if course_dir.isdir():
                 shutil.rmtree(course_dir)
                 log.info(
                     "Course import {0}: Temp data cleared".format(courselike_key)
                 )
 
-            log.exception(
-                "error importing course"
-            )
+            log.exception("error importing course")
             return JsonResponse(
                 {
                     'error_message': str(exception),
@@ -393,7 +399,7 @@ class FullCourseImportExport(APIView):
         try:
             # This was the last chunk.
             log.info("Course import {0}: Upload complete".format(courselike_key))
-            self._save_request_status(request, key, 1)
+            self._save_request_status(request, courselike_string, 1)
 
             tar_file = tarfile.open(temp_filepath)
             try:
@@ -401,7 +407,7 @@ class FullCourseImportExport(APIView):
                     tar_file,
                     (course_dir + '/').encode('utf-8'))
             except SuspiciousOperation as exc:
-                self._save_request_status(request, key, -1)
+                self._save_request_status(request, courselike_string, -1)
                 return JsonResponse(
                     {
                         'error_message': 'Unsafe tar file. Aborting import.',
@@ -416,7 +422,7 @@ class FullCourseImportExport(APIView):
             log.info(
                 "Course import {0}: Uploaded file extracted".format(courselike_key)
             )
-            self._save_request_status(request, key, 2)
+            self._save_request_status(request, courselike_string, 2)
 
             # find the 'course.xml' file
             def get_all_files(directory):
@@ -439,15 +445,15 @@ class FullCourseImportExport(APIView):
                         return dirpath
                 return None
 
-            fname = "course.xml"
-            dirpath = get_dir_for_fname(course_dir, fname)
+            dirpath = get_dir_for_fname(course_dir, root_name)
             if not dirpath:
-                self._save_request_status(request, key, -2)
+                self._save_request_status(request, courselike_string, -2)
                 return JsonResponse(
                     {
 
                         'error_message': _(
-                            'Could not find the course.xml file in the package.'
+                            'Could not find the {0} file in the package.'.
+                                format(root_name)
                         ),
                         'stage': -2
                     },
@@ -455,14 +461,15 @@ class FullCourseImportExport(APIView):
                 )
 
             dirpath = os.path.relpath(dirpath, data_root)
-            logging.debug('found course.xml at {0}'.format(dirpath))
+            logging.debug('found %s at %s', root_name, dirpath)
 
             log.info(
-                "Course import {0}: Extracted file verified".format(courselike_key)
+                "Course import %s: Extracted file verified",
+                courselike_key
             )
-            self._save_request_status(request, key, 3)
+            self._save_request_status(request, courselike_string, 3)
 
-            course_items = import_course_from_xml(
+            courselike_items = import_func(
                 modulestore(),
                 request.user.id,
                 settings.GITHUB_REPO_ROOT,
@@ -472,13 +479,13 @@ class FullCourseImportExport(APIView):
                 target_id=courselike_key,
             )
 
-            new_location = course_items[0].location
+            new_location = courselike_items[0].location
             logging.debug('new course at {0}'.format(new_location))
 
             log.info(
                 "Course import {0}: Course import successful".format(courselike_key)
             )
-            self._save_request_status(request, key, 4)
+            self._save_request_status(request, courselike_string, 4)
 
         # Send errors to client with stage at which error occurred.
         except Exception as exception:   # pylint: disable=W0703
@@ -488,7 +495,7 @@ class FullCourseImportExport(APIView):
             return JsonResponse(
                 {
                     'error_message': str(exception),
-                    'stage': -session_status[key]
+                    'stage': -session_status[courselike_string]
                 },
                 status=400
             )
@@ -501,11 +508,11 @@ class FullCourseImportExport(APIView):
                 )
             # set failed stage number with negative sign in case of an
             # unsuccessful import
-            if session_status[key] != 4:
+            if session_status[courselike_string] != 4:
                 self._save_request_status(
                     request,
-                    key,
-                    -abs(session_status[key])
+                    courselike_string,
+                    -abs(session_status[courselike_string])
                 )
 
         return JsonResponse({'status': 'OK'})
