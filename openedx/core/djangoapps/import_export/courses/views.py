@@ -314,8 +314,15 @@ class FullCourseImportExport(APIView):
                 )
 
             temp_filepath = course_dir / filename
-            if not course_dir.isdir():
-                os.mkdir(course_dir)
+
+            # Only handle exceptions caused by the directory already existing,
+            # to avoid a potential race condition caused by the "check and go"
+            # method.
+            try:
+                os.makedirs(course_dir)
+            except OSError as e:
+                if e.errno != e.EEXIST:
+                    raise
 
             logging.debug('importing course to {0}'.format(temp_filepath))
 
