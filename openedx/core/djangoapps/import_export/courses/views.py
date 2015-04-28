@@ -13,6 +13,7 @@ from path import path
 from tempfile import mkdtemp
 
 from django.conf import settings
+from django.core.cache import cache
 from django.core.exceptions import SuspiciousOperation
 from django.core.files.temp import NamedTemporaryFile
 from django.core.servers.basehttp import FileWrapper
@@ -107,11 +108,12 @@ class FullCourseImportStatus(APIView):
             4 : Import successful
 
         """
-        try:
-            session_status = request.session["import_status"]
-            status = session_status[course_key_string + filename]
-        except KeyError:
-            status = 0
+        status_key = "{}|{}{}".format(
+            request.user.username,
+            course_key_string,
+            filename
+        )
+        status = cache.get(status_key, 0)
 
         return Response({"ImportStatus": status})
 
@@ -128,12 +130,10 @@ class FullCourseImportExport(APIView):
         """
         Save import status for a course in request session
         """
-        session_status = request.session.get("import_status")
-        if session_status is None:
-            session_status = request.session.setdefault("import_status", {})
-
-        session_status[key] = status
-        request.session.save()
+        cache.set(
+            "{}|{}".format(request.user.username, key),
+            status
+        )
 
     def _export_error_response(self, params, redirect_url=None):
         if redirect_url:
@@ -295,11 +295,15 @@ class FullCourseImportExport(APIView):
         subdir = base64.urlsafe_b64encode(repr(courselike_key))
         course_dir = data_root / subdir
 
+        status_key = "{}|{}".format(
+            request.user.username,
+            courselike_string
+        )
+
         # Do everything in a try-except block to make sure everything is
         # properly cleaned up.
         try:
-            # Use sessions to keep info about import progress
-            session_status = request.session.setdefault("import_status", {})
+            # Cache the import progress
             self._save_request_status(request, courselike_string, 0)
             if not filename.endswith('.tar.gz'):
                 self._save_request_status(request, courselike_string, -1)
@@ -502,7 +506,7 @@ class FullCourseImportExport(APIView):
             return JsonResponse(
                 {
                     'error_message': str(exception),
-                    'stage': -session_status[courselike_string]
+                    'stage': -cache.get(status_key)
                 },
                 status=400
             )
@@ -515,11 +519,11 @@ class FullCourseImportExport(APIView):
                 )
             # set failed stage number with negative sign in case of an
             # unsuccessful import
-            if session_status[courselike_string] != 4:
+            if cache.get(status_key) != 4:
                 self._save_request_status(
                     request,
                     courselike_string,
-                    -abs(session_status[courselike_string])
+                    -abs(cache.get(status_key))
                 )
 
         return JsonResponse({'status': 'OK'})
