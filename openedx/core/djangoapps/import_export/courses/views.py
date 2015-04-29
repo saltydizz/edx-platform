@@ -81,8 +81,7 @@ class ArchiveRenderer(renderers.BaseRenderer):
     format = None
     render_style = "binary"
 
-    # pylint: disable=unused-argument
-    def render(self, data, media_type=None, render_context=None):
+    def render(self, data, _media_type=None, _render_context=None):
         return data
 
 
@@ -93,7 +92,6 @@ class FullCourseImportStatus(APIView):
     authentication_classes = (OAuth2Authentication, SessionAuthentication)
     permission_classes = (IsAuthenticated, IsCourseStaff)
 
-    # pylint: disable=unused-argument
     @ensure_valid_course_key
     def get(self, request, course_key_string, filename=None):
         """
@@ -136,6 +134,11 @@ class FullCourseImportExport(APIView):
         )
 
     def _export_error_response(self, params, redirect_url=None):
+        """
+        Reasons about what to do when an export error is encountered. If there
+        was a redirect URL supplied in the request, pass error information in
+        the redirect URL. Otherwise, return the information in a JSON response.
+        """
         if redirect_url:
             return redirect("{0}?{1}".format(
                 redirect_url,
@@ -144,7 +147,6 @@ class FullCourseImportExport(APIView):
         else:
             return JsonResponse(params)
 
-    # pylint: disable=unused-argument
     @ensure_valid_course_key
     @renderer_classes_decorator((ArchiveRenderer,))
     def get(self, request, course_key_string):
@@ -195,7 +197,7 @@ class FullCourseImportExport(APIView):
                 )
 
             logging.debug(
-                u'tar file being generated at {0}'.format(export_file.name)
+                u'tar file being generated at %s', export_file.name
             )
             with tarfile.open(name=export_file.name, mode='w:gz') as tar_file:
                 tar_file.add(root_dir / name, arcname=name)
@@ -217,7 +219,7 @@ class FullCourseImportExport(APIView):
                     parent = modulestore().get_item(parent_loc)
                     if parent.location.category == 'vertical':
                         unit = parent
-            except:  # pylint: disable=bare-except
+            except Exception:  # pylint: disable=broad-except
                 # if we have a nested exception, then we'll show the more
                 # generic error message
                 pass
@@ -234,7 +236,7 @@ class FullCourseImportExport(APIView):
                 },
                 redirect_url=redirect_url
             )
-        except Exception as exc:
+        except Exception as exc:  # pylint: disable=broad-except
             log.exception(
                 'There was an error exporting course %s',
                 courselike_key
@@ -263,7 +265,6 @@ class FullCourseImportExport(APIView):
         response['Content-Length'] = os.path.getsize(export_file.name)
         return response
 
-    # pylint: disable=unused-argument
     @ensure_valid_course_key
     @renderer_classes_decorator((JSONRenderer,))
     def post(self, request, course_key_string):
@@ -280,13 +281,9 @@ class FullCourseImportExport(APIView):
 
         if library:
             root_name = LIBRARY_ROOT
-            context_name = "context_library"
-            courselike_module = modulestore().get_library(courselike_key)
             import_func = import_library_from_xml
         else:
             root_name = COURSE_ROOT
-            context_name = "context_course"
-            courselike_module = modulestore().get_course(courselike_key)
             import_func = import_course_from_xml
 
         filename = request.FILES['course-data'].name
@@ -324,11 +321,11 @@ class FullCourseImportExport(APIView):
             # method.
             try:
                 os.makedirs(course_dir)
-            except OSError as e:
-                if e.errno != e.EEXIST:
+            except OSError as exc:
+                if exc.errno != exc.EEXIST:
                     raise
 
-            logging.debug('importing course to {0}'.format(temp_filepath))
+            logging.debug('importing course to %s', temp_filepath)
 
             # Get upload chunks byte ranges
             try:
@@ -389,12 +386,12 @@ class FullCourseImportExport(APIView):
                     }]
                 })
         # Send errors to client with stage at which error occurred.
-        except Exception as exception:  # pylint: disable=W0703
+        except Exception as exception:  # pylint: disable=broad-except
             self._save_request_status(request, courselike_string, -1)
-            if course_dir.isdir():
+            if course_dir.isdir():  # pylint: disable=no-value-for-parameter
                 shutil.rmtree(course_dir)
                 log.info(
-                    "Course import {0}: Temp data cleared".format(courselike_key)
+                    "Course import %s: Temp data cleared", courselike_key
                 )
 
             log.exception("error importing course")
@@ -409,7 +406,7 @@ class FullCourseImportExport(APIView):
         # try-finally block for proper clean up after receiving last chunk.
         try:
             # This was the last chunk.
-            log.info("Course import {0}: Upload complete".format(courselike_key))
+            log.info("Course import %s: Upload complete", courselike_key)
             self._save_request_status(request, courselike_string, 1)
 
             tar_file = tarfile.open(temp_filepath)
@@ -431,7 +428,7 @@ class FullCourseImportExport(APIView):
                 tar_file.close()
 
             log.info(
-                "Course import {0}: Uploaded file extracted".format(courselike_key)
+                "Course import %s: Uploaded file extracted", courselike_key
             )
             self._save_request_status(request, courselike_string, 2)
 
@@ -463,9 +460,9 @@ class FullCourseImportExport(APIView):
                     {
 
                         'error_message': _(
-                            'Could not find the {0} file in the package.'.
-                                format(root_name)
-                        ),
+                            'Could not find the {0} file in the'
+                            'package.'
+                        ).format(root_name),
                         'stage': -2
                     },
                     status=415
@@ -491,15 +488,15 @@ class FullCourseImportExport(APIView):
             )
 
             new_location = courselike_items[0].location
-            logging.debug('new course at {0}'.format(new_location))
+            logging.debug('new course at %s', new_location)
 
             log.info(
-                "Course import {0}: Course import successful".format(courselike_key)
+                "Course import %s: Course import successful", courselike_key
             )
             self._save_request_status(request, courselike_string, 4)
 
         # Send errors to client with stage at which error occurred.
-        except Exception as exception:   # pylint: disable=W0703
+        except Exception as exception:  # pylint: disable=broad-except
             log.exception(
                 "error importing course"
             )
@@ -512,10 +509,10 @@ class FullCourseImportExport(APIView):
             )
 
         finally:
-            if course_dir.isdir():
+            if course_dir.isdir():  # pylint: disable=no-value-for-parameter
                 shutil.rmtree(course_dir)
                 log.info(
-                    "Course import {0}: Temp data cleared".format(courselike_key)
+                    "Course import %s: Temp data cleared", courselike_key  # pylint: disable=no-value-for-parameter
                 )
             # set failed stage number with negative sign in case of an
             # unsuccessful import

@@ -74,10 +74,7 @@ class ImportTestCase(CourseTestCase):
         with open(os.path.join(embedded_dir, "course.xml"), "w+") as f:
             f.write('<course url_name="2013_Spring" org="EDx" course="0.00x"/>')
 
-        with open(
-                os.path.join(embedded_dir, "course", "2013_Spring.xml"),
-                "w+"
-        ) as f:
+        with open(os.path.join(embedded_dir, "course", "2013_Spring.xml"), "w+") as f:
             f.write('<course></course>')
 
         self.good_tar = os.path.join(self.content_dir, "good.tar.gz")
@@ -209,7 +206,7 @@ class ImportTestCase(CourseTestCase):
         outsidep = self.unsafe_common_dir / "unsafe_file.txt"
         symlinkp = self.unsafe_common_dir / "symlink.txt"
         symlink_tar = self.unsafe_common_dir / "symlink.tar.gz"
-        outsidep.symlink(symlinkp)
+        outsidep.symlink(symlinkp)  # pylint: disable=no-value-for-parameter
         with tarfile.open(symlink_tar, "w:gz") as tar:
             tar.add(symlinkp)
 
@@ -432,7 +429,6 @@ class ExportTestCase(CourseTestCase):
         """ Export failure helper method. """
         resp = self.client.get(self.url, HTTP_ACCEPT='application/x-tgz')
         self.assertEquals(resp.status_code, 200)
-        # pylint: disable=maybe-no-member
         self.assertNotIn('Content-Disposition', resp)
         self.assertContains(resp, 'Unable to create xml for module')
         self.assertContains(resp, expected_text)
@@ -455,15 +451,15 @@ class ExportTestCase(CourseTestCase):
         root_dir = path(tempfile.mkdtemp())
         try:
             export_library_to_xml(self.store, contentstore(), lib_key, root_dir, name)
-            # pylint: disable=no-member
-            lib_xml = lxml.etree.XML(open(root_dir / name / LIBRARY_ROOT).read())
+            lib_xml = lxml.etree.XML(open(root_dir / name / LIBRARY_ROOT).read())  # pylint: disable=no-member
             self.assertEqual(lib_xml.get('org'), lib_key.org)
             self.assertEqual(lib_xml.get('library'), lib_key.library)
             block = lib_xml.find('video')
             self.assertIsNotNone(block)
             self.assertEqual(block.get('url_name'), video_block.url_name)
-            # pylint: disable=no-member
-            video_xml = lxml.etree.XML(open(root_dir / name / 'video' / video_block.url_name + '.xml').read())
+            video_xml = lxml.etree.XML(  # pylint: disable=no-member
+                open(root_dir / name / 'video' / video_block.url_name + '.xml').read()
+            )
             self.assertEqual(video_xml.tag, 'video')
             self.assertEqual(video_xml.get('youtube_id_1_0'), youtube_id)
         finally:
