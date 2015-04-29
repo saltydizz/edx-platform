@@ -1,4 +1,3 @@
-# pylint: disable=E1101
 '''
 Utilities for contentstore tests
 '''
@@ -84,8 +83,7 @@ class CourseTestCase(ModuleStoreTestCase):
         api_client = APIClient()
 
         # Register an OAuth2 Client
-        # pylint: disable=unused-variable
-        oauth2_client, access_token = create_oauth2_client(self.user)
+        _oauth2_client, access_token = create_oauth2_client(self.user)
         self.client = use_access_token(api_client, access_token)
 
         self.course = CourseFactory.create()
@@ -95,8 +93,7 @@ class CourseTestCase(ModuleStoreTestCase):
         Create a non-staff user, log them in (if authenticate=True), and return
         the client, user to use for testing.
         """
-        # pylint: disable=unused-variable
-        nonstaff, password = self.create_non_staff_user()
+        nonstaff, _password = self.create_non_staff_user()
 
         client = APIClient()
 

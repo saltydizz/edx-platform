@@ -37,7 +37,6 @@ CONTENT_RE = re.compile(
 )
 
 
-# pylint: disable=unused-argument
 @login_required
 @ensure_csrf_cookie
 @require_http_methods(("GET",))
@@ -83,7 +82,6 @@ def import_handler(request, course_key_string):
     })
 
 
-# pylint: disable=unused-argument
 @ensure_csrf_cookie
 @login_required
 @require_http_methods(("GET",))
@@ -117,7 +115,6 @@ def export_handler(request, course_key_string):
         successful_url = reverse_course_url("course_handler", courselike_key)
         courselike_module = modulestore().get_course(courselike_key)
         context_name = "context_course"
-
 
     if not has_course_author_access(request.user, courselike_key):
         raise PermissionDenied()
