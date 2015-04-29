@@ -460,9 +460,8 @@ class FullCourseImportExport(APIView):
                     {
 
                         'error_message': _(
-                            'Could not find the {0} file in the'
-                            'package.'
-                        ).format(root_name),
+                            'Could not find the {root_xml_file} file in the package.'
+                        ).format(root_xml_file=root_name),
                         'stage': -2
                     },
                     status=415
