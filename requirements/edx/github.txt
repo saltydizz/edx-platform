@@ -51,4 +51,4 @@ git+https://github.com/edx/edx-lint.git@8bf82a32ecb8598c415413df66f5232ab8d974e9
 -e git+https://github.com/edx/edx-reverification-block.git@5da515ef229e73a137d366beb05ea4aea5881960#egg=edx-reverification-block
 
 # Third Party XBlocks
--e git+https://github.com/mitodl/edx-sga@172a90fd2738f8142c10478356b2d9ed3e55334a#egg=edx-sga
+-e git+https://github.com/arbisoft/edx-sga@accessibility_fix#egg=edx-sga
