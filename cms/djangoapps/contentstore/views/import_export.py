@@ -11,6 +11,7 @@ from contentstore.utils import reverse_course_url, reverse_library_url, reverse_
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 from django.core.urlresolvers import reverse
+from django.utils.translation import ugettext as _
 from django.views.decorators.http import require_http_methods
 
 from django_future.csrf import ensure_csrf_cookie
@@ -99,12 +100,6 @@ def export_handler(request, course_key_string):
     unit = request.GET.get("unit", None)
     parent = request.GET.get("parent", None)
 
-    if parent:
-        try:
-            parent = CourseKey.from_string(parent)
-        except InvalidKeyError:
-            parent = None
-
     courselike_key = CourseKey.from_string(course_key_string)
     library = isinstance(courselike_key, LibraryLocator)
     if library:
@@ -135,6 +130,23 @@ def export_handler(request, course_key_string):
         })
     )
 
+    if parent:
+        try:
+            parent = CourseKey.from_string(parent)
+            edit_unit_url = reverse_usage_url("container_handler", parent.location)
+        except (InvalidKeyError, AttributeError):
+            return render_to_response("export.html", {
+                context_name: courselike_module,
+                "export_url": export_url,
+                "raw_err_msg": _(
+                    "Invalid parent supplied; \"{supplied_key}\" is not a "
+                    "valid course or library key."
+                ).format(supplied_key=parent),
+                "library": library
+            })
+    else:
+        edit_unit_url = ""
+
     if error:
         return render_to_response('export.html', {
             context_name: courselike_module,
@@ -142,9 +154,7 @@ def export_handler(request, course_key_string):
             "in_err": error,
             "unit": unit,
             "failed_module": failed_module,
-            "edit_unit_url":
-                reverse_usage_url("container_handler", parent.location)
-                if parent else "",
+            "edit_unit_url": edit_unit_url,
             "course_home_url": successful_url,
             "raw_err_msg": error_message,
             "library": library
