@@ -380,6 +380,9 @@ FEATURES = {
         'TWITTER_SHARING': False,
         'TWITTER_SHARING_TEXT': None
     },
+
+    # Course discovery feature
+    'ENABLE_COURSE_DISCOVERY': False,
 }
 
 # Ignore static asset files on import which match this pattern
@@ -587,22 +590,42 @@ TRACKING_IGNORE_URL_PATTERNS = [r'^/event', r'^/login', r'^/heartbeat', r'^/segm
 
 EVENT_TRACKING_ENABLED = True
 EVENT_TRACKING_BACKENDS = {
-    'logger': {
-        'ENGINE': 'eventtracking.backends.logger.LoggerBackend',
+    'tracking_logs': {
+        'ENGINE': 'eventtracking.backends.routing.RoutingBackend',
         'OPTIONS': {
-            'name': 'tracking',
-            'max_event_size': TRACK_MAX_EVENT,
+            'backends': {
+                'logger': {
+                    'ENGINE': 'eventtracking.backends.logger.LoggerBackend',
+                    'OPTIONS': {
+                        'name': 'tracking',
+                        'max_event_size': TRACK_MAX_EVENT,
+                    }
+                }
+            },
+            'processors': [
+                {'ENGINE': 'track.shim.LegacyFieldMappingProcessor'},
+                {'ENGINE': 'track.shim.VideoEventProcessor'}
+            ]
+        }
+    },
+    'segmentio': {
+        'ENGINE': 'eventtracking.backends.routing.RoutingBackend',
+        'OPTIONS': {
+            'backends': {
+                'segment': {'ENGINE': 'eventtracking.backends.segment.SegmentBackend'}
+            },
+            'processors': [
+                {
+                    'ENGINE': 'eventtracking.processors.whitelist.NameWhitelistProcessor',
+                    'OPTIONS': {
+                        'whitelist': []
+                    }
+                }
+            ]
         }
     }
 }
-EVENT_TRACKING_PROCESSORS = [
-    {
-        'ENGINE': 'track.shim.LegacyFieldMappingProcessor'
-    },
-    {
-        'ENGINE': 'track.shim.VideoEventProcessor'
-    }
-]
+EVENT_TRACKING_PROCESSORS = []
 
 # Backwards compatibility with ENABLE_SQL_TRACKING_LOGS feature flag.
 # In the future, adding the backend to TRACKING_BACKENDS should be enough.
@@ -1657,6 +1680,7 @@ INSTALLED_APPS = (
     # Discussion forums
     'django_comment_client',
     'django_comment_common',
+    'discussion_api',
     'notes',
 
     'edxnotes',
@@ -2294,3 +2318,10 @@ PROFILE_IMAGE_DEFAULT_FILE_EXTENSION = 'png'
 PROFILE_IMAGE_SECRET_KEY = 'placeholder secret key'
 PROFILE_IMAGE_MAX_BYTES = 1024 * 1024
 PROFILE_IMAGE_MIN_BYTES = 100
+
+# This is to check the domain in case of preview.
+PREVIEW_DOMAIN = 'preview'
+
+# Sets the maximum number of courses listed on the homepage
+# If set to None, all courses will be listed on the homepage
+HOMEPAGE_COURSE_MAX = None

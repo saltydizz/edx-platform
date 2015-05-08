@@ -4,6 +4,7 @@ End-to-end tests related to the cohort management on the LMS Instructor Dashboar
 """
 
 from datetime import datetime
+from flaky import flaky
 
 from pytz import UTC, utc
 from bok_choy.promise import EmptyPromise
@@ -20,7 +21,7 @@ from ...pages.studio.settings_group_configurations import GroupConfigurationsPag
 import uuid
 
 
-@attr('shard_3')
+@attr('shard_5')
 class CohortConfigurationTest(EventsTestMixin, UniqueCourseTest, CohortTestMixin):
     """
     Tests for cohort management on the LMS Instructor Dashboard
@@ -619,7 +620,7 @@ class CohortConfigurationTest(EventsTestMixin, UniqueCourseTest, CohortTestMixin
         self.assertEquals(expected_message, messages[0])
 
 
-@attr('shard_3')
+@attr('shard_5')
 class CohortDiscussionTopicsTest(UniqueCourseTest, CohortTestMixin):
     """
     Tests for cohorting the inline and course-wide discussion topics.
@@ -718,6 +719,7 @@ class CohortDiscussionTopicsTest(UniqueCourseTest, CohortTestMixin):
         self.reload_page()
         self.assertEqual(self.cohort_management_page.get_cohorted_topics_count(key), cohorted_topics)
 
+    @flaky  # TODO: fix this, see TNL-2120
     def test_cohort_course_wide_discussion_topic(self):
         """
         Scenario: cohort a course-wide discussion topic.
@@ -910,7 +912,7 @@ class CohortDiscussionTopicsTest(UniqueCourseTest, CohortTestMixin):
         self.verify_discussion_topics_after_reload(self.inline_key, cohorted_topics_after)
 
 
-@attr('shard_3')
+@attr('shard_5')
 class CohortContentGroupAssociationTest(UniqueCourseTest, CohortTestMixin):
     """
     Tests for linking between content groups and cohort in the instructor dashboard.

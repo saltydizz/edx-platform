@@ -122,6 +122,7 @@ if settings.FEATURES["ENABLE_MOBILE_REST_API"]:
 
 # if settings.FEATURES.get("MULTIPLE_ENROLLMENT_ROLES"):
 urlpatterns += (
+    # TODO Namespace these!
     url(r'^verify_student/', include('verify_student.urls')),
     url(r'^course_modes/', include('course_modes.urls')),
 )
@@ -443,6 +444,7 @@ if settings.COURSEWARE_ENABLED:
     # discussion forums live within courseware, so courseware must be enabled first
     if settings.FEATURES.get('ENABLE_DISCUSSION_SERVICE'):
         urlpatterns += (
+            url(r'^api/discussion/', include('discussion_api.urls')),
             url(r'^courses/{}/discussion/'.format(settings.COURSE_ID_PATTERN),
                 include('django_comment_client.urls')),
             url(r'^notification_prefs/enable/', 'notification_prefs.views.ajax_enable'),
