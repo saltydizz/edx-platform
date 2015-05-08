@@ -60,7 +60,7 @@ define(['js/ccx/schedule'],
                     "location": "i4x://edX/DemoX/vertical/vertical_0270f6de40fc",
                     "hidden": true}]}]
                 }];
-                view = new edx.ccx.schedule.ScheduleView();
+                view = new edx.ccx.schedule.ScheduleView({el: $('#new-ccx-schedule')});
 		view.schedule_collection.set(data)
 		view.render();
 
@@ -105,6 +105,62 @@ define(['js/ccx/schedule'],
                 $('#add-all').click();
 		expect(view.showing.length).toEqual(1);
 		expect(view.hidden).toEqual([]);
+            });
+
+            it("selects a chapter and adds units to dropdown", function() {
+		expect(view.sequential_select.children('option').length).toEqual(0);
+                view.chapter_select.change();
+		expect(view.sequential_select.prop('disabled')).toEqual(true);
+                var val = 'i4x://edX/DemoX/chapter/d8a6192ade314473a78242dfeedfbf5b';
+                view.chapter_select.val(val);
+                view.chapter_select.change();
+		expect(view.chapter_select.val()).toEqual(val);
+		expect(view.sequential_select.prop('disabled')).toEqual(false);
+		expect(view.sequential_select.children('option').length).toEqual(2);
+            });
+
+            it("selects a unit and adds sections to dropdown", function() {
+                var val = 'i4x://edX/DemoX/chapter/d8a6192ade314473a78242dfeedfbf5b';
+                view.chapter_select.val(val);
+                view.chapter_select.change();
+		expect(view.vertical_select.children('option').length).toEqual(0);
+                view.sequential_select.change();
+		expect(view.vertical_select.prop('disabled')).toEqual(true);
+                val = "i4x://edX/DemoX/sequential/edx_introduction";
+                view.sequential_select.val(val);
+                view.sequential_select.change();
+		expect(view.sequential_select.val()).toEqual(val);
+		expect(view.vertical_select.prop('disabled')).toEqual(false);
+		expect(view.vertical_select.children('option').length).toEqual(2);
+            });
+
+            it("selects a section", function() {
+                var val = 'i4x://edX/DemoX/chapter/d8a6192ade314473a78242dfeedfbf5b';
+                view.chapter_select.val(val);
+                view.chapter_select.change();
+                val = "i4x://edX/DemoX/sequential/edx_introduction";
+                view.sequential_select.val(val);
+                view.sequential_select.change();
+                val = "i4x://edX/DemoX/vertical/vertical_0270f6de40fc",
+                view.vertical_select.val(val);
+                view.vertical_select.change();
+		expect(view.vertical_select.val()).toEqual(val);
+            });
+
+            it("adds a unit", function() {
+                var val = 'i4x://edX/DemoX/chapter/d8a6192ade314473a78242dfeedfbf5b';
+                view.chapter_select.val(val);
+                view.chapter_select.change();
+                val = "i4x://edX/DemoX/sequential/edx_introduction";
+                view.sequential_select.val(val);
+                view.sequential_select.change();
+                val = "i4x://edX/DemoX/vertical/vertical_0270f6de40fc",
+                view.vertical_select.val(val);
+                view.vertical_select.change();
+                var unit = view.find_unit(view.schedule, 'i4x://edX/DemoX/chapter/d8a6192ade314473a78242dfeedfbf5b');
+		expect(unit.hidden).toBe(true);
+		$('#add-unit-button').click();
+		expect(unit.hidden).toBe(false);
             });
 
             it("gets a datetime string from date and time fields", function() {
