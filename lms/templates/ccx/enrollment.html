@@ -4,15 +4,16 @@
   <form method="POST" action="ccx_invite">
   <input type="hidden" name="csrfmiddlewaretoken" value="${ csrf_token }">
   <h2> ${_("Batch Enrollment")} </h2>
-  <p>
-    <label for="student-ids">
+  <label for="student-ids" class="sr">${_("Email Addresses/Usernames")}</label>
+  <p id="label_student_ids">
       ${_("Enter email addresses and/or usernames separated by new lines or commas.")}
-      ${_("You will not get notification for emails that bounce, so please double-check spelling.")} </label>
-    <textarea rows="6" name="student-ids" placeholder="${_("Email Addresses/Usernames")}" spellcheck="false"></textarea>
+      ${_("You will not get notification for emails that bounce, so please double-check spelling.")}
   </p>
+  <textarea rows="6" name="student-ids" id="student-ids" aria-describedby="label_student_ids" placeholder="${_("Email Addresses/Usernames")}" spellcheck="false"></textarea>
+
 
   <div class="enroll-option">
-    <input type="checkbox" name="auto-enroll" value="Auto-Enroll" checked="yes">
+    <input type="checkbox" name="auto-enroll" id="auto-enroll" value="Auto-Enroll" checked="yes">
     <label style="display:inline" for="auto-enroll">${_("Auto Enroll")}</label>
     <div class="hint auto-enroll-hint">
       <span class="hint-caret"></span>
@@ -26,7 +27,7 @@
   </div>
 
   <div class="enroll-option">
-    <input type="checkbox" name="email-students" value="Notify-students-by-email" checked="yes">
+    <input type="checkbox" name="email-students" id="email-students" value="Notify-students-by-email" checked="yes">
     <label style="display:inline" for="email-students">${_("Notify users by email")}</label>
     <div class="hint email-students-hint">
       <span class="hint-caret"></span>
@@ -45,7 +46,7 @@
   </form>
 </div>
 
-<div class="member-lists-management" style="float:left;width:50%">
+<div class="member-lists-management" style="float:left;width:50%" >
   <form method="POST" action="ccx_manage_student">
   <input type="hidden" name="csrfmiddlewaretoken" value="${ csrf_token }">
   <div class="auth-list-container active">
