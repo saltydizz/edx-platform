@@ -275,6 +275,7 @@ class ImportTestCase(CourseTestCase):
         import_status = json.loads(resp_status.content)["ImportStatus"]
         self.assertIn(import_status, (0, 3))
 
+    @override_settings(MODULESTORE_BRANCH='published')
     def test_library_import(self):
         """
         Try importing a known good library archive, and verify that the
